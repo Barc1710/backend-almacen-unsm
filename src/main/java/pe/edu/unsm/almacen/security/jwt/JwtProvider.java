@@ -6,11 +6,9 @@ import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.MalformedJwtException;
 import io.jsonwebtoken.UnsupportedJwtException;
-import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import io.jsonwebtoken.security.SecurityException;
-import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
+import java.util.Base64;
 import java.util.Date;
 import javax.crypto.SecretKey;
 import lombok.extern.slf4j.Slf4j;
@@ -22,23 +20,30 @@ import pe.edu.unsm.almacen.security.service.UserDetailsImpl;
 @Slf4j
 public class JwtProvider {
 
-    @Value("${jwt.secret:404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970337336763979244226452948404D6351}")
-    private String jwtSecret;
+    private final SecretKey signingKey;
+    private final long jwtExpirationMs;
 
-    @Value("${jwt.expiration:86400000}")
-    private long jwtExpirationMs;
+    public JwtProvider(@Value("${jwt.secret}") String jwtSecret,
+                       @Value("${jwt.expiration:86400000}") long jwtExpirationMs) {
+        if (jwtSecret == null || jwtSecret.isBlank()) {
+            throw new IllegalArgumentException("jwt.secret es obligatorio y debe estar codificado en Base64");
+        }
 
-    private SecretKey getSigningKey() {
         byte[] keyBytes;
         try {
-            keyBytes = Decoders.BASE64.decode(jwtSecret);
-        } catch (Exception e) {
-            keyBytes = jwtSecret.getBytes(StandardCharsets.UTF_8);
+            keyBytes = Base64.getDecoder().decode(jwtSecret);
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("jwt.secret debe ser una clave válida codificada en Base64");
         }
         if (keyBytes.length < 32) {
-            keyBytes = Arrays.copyOf(keyBytes, 32);
+            throw new IllegalArgumentException("jwt.secret debe contener al menos 32 bytes de clave al decodificarse");
         }
-        return Keys.hmacShaKeyFor(keyBytes);
+        if (jwtExpirationMs <= 0) {
+            throw new IllegalArgumentException("jwt.expiration debe ser mayor que cero");
+        }
+
+        this.signingKey = Keys.hmacShaKeyFor(keyBytes);
+        this.jwtExpirationMs = jwtExpirationMs;
     }
 
     public String generateToken(UserDetailsImpl userPrincipal) {
@@ -53,13 +58,13 @@ public class JwtProvider {
                 .claim("debeCambiarClave", userPrincipal.getDebeCambiarClave())
                 .issuedAt(now)
                 .expiration(expiryDate)
-                .signWith(getSigningKey())
+                .signWith(signingKey)
                 .compact();
     }
 
     public Claims getClaimsFromToken(String token) {
         return Jwts.parser()
-                .verifyWith(getSigningKey())
+                .verifyWith(signingKey)
                 .build()
                 .parseSignedClaims(token)
                 .getPayload();
@@ -72,7 +77,7 @@ public class JwtProvider {
     public boolean validateToken(String token) {
         try {
             Jwts.parser()
-                    .verifyWith(getSigningKey())
+                    .verifyWith(signingKey)
                     .build()
                     .parseSignedClaims(token);
             return true;
