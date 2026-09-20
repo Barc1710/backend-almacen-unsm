@@ -1,5 +1,5 @@
 -- =============================================================================
--- MIGRACIÓN V1: Esquema Base Saneado para Almacén UNSM
+-- MIGRACIÓN V1: Esquema Base Saneado para Almacén UNSM 
 -- =============================================================================
 
 -- 1. Catálogos Básicos
@@ -80,7 +80,7 @@ CREATE TABLE proveedor (
     estado CHAR(1) DEFAULT '1' NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- 3. Seguridad y Usuarios (Soporte BCrypt para Spring Security)
+-- 3. Seguridad y Usuarios
 CREATE TABLE perfil (
     id_perfil INT AUTO_INCREMENT PRIMARY KEY,
     nombreperfil VARCHAR(100) NOT NULL,
@@ -123,7 +123,7 @@ CREATE TABLE usuario (
         REFERENCES perfil (id_perfil) ON DELETE RESTRICT ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- 4. Artículos e Inventario (Cantidades DECIMAL(12,4) y Precios DECIMAL(12,2))
+-- 4. Artículos 
 CREATE TABLE articulo (
     id INT AUTO_INCREMENT PRIMARY KEY,
     codigo VARCHAR(20) NOT NULL,
@@ -131,8 +131,8 @@ CREATE TABLE articulo (
     id_familia INT NOT NULL,
     id_marca INT NOT NULL,
     id_ubicacion INT NOT NULL,
-    saldo DECIMAL(12, 4) DEFAULT 0.0000 NOT NULL,
-    cantidad_minima DECIMAL(12, 4) DEFAULT 10.0000 NOT NULL,
+    saldo DECIMAL(12, 2) DEFAULT 0.00 NOT NULL,
+    cantidad_minima DECIMAL(12, 2) DEFAULT 10.00 NOT NULL,
     precio DECIMAL(12, 2) DEFAULT 0.00 NOT NULL,
     activo TINYINT(1) DEFAULT 1 NOT NULL,
     estado CHAR(1) DEFAULT '1' NOT NULL,
@@ -144,7 +144,7 @@ CREATE TABLE articulo (
     CONSTRAINT fk_articulo_ubicacion FOREIGN KEY (id_ubicacion) REFERENCES ubicacion (id) ON DELETE RESTRICT ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- 5. Transacciones de Ingreso y Egreso
+-- 5. Transacciones de Ingreso y Egreso 
 CREATE TABLE ingreso (
     id INT AUTO_INCREMENT PRIMARY KEY,
     id_proveedor INT NOT NULL,
@@ -159,9 +159,9 @@ CREATE TABLE detalle_ingreso (
     id INT AUTO_INCREMENT PRIMARY KEY,
     id_ingreso INT NOT NULL,
     id_articulo INT NOT NULL,
-    cantidad DECIMAL(12, 4) NOT NULL,
+    cantidad DECIMAL(12, 2) NOT NULL,
     precio DECIMAL(12, 2) DEFAULT 0.00 NOT NULL,
-    saldo DECIMAL(12, 4) NOT NULL,
+    saldo DECIMAL(12, 2) NOT NULL,
     fecha DATETIME DEFAULT CURRENT_TIMESTAMP NOT NULL,
     tipo CHAR(1) DEFAULT 'i' NOT NULL,
     CONSTRAINT fk_det_ingreso_cabecera FOREIGN KEY (id_ingreso) REFERENCES ingreso (id) ON DELETE RESTRICT ON UPDATE CASCADE,
@@ -189,25 +189,25 @@ CREATE TABLE detalle_egreso (
     id INT AUTO_INCREMENT PRIMARY KEY,
     id_egreso INT NOT NULL,
     id_articulo INT NOT NULL,
-    cantidad DECIMAL(12, 4) NOT NULL,
+    cantidad DECIMAL(12, 2) NOT NULL,
     precio DECIMAL(12, 2) DEFAULT 0.00 NOT NULL,
-    saldo DECIMAL(12, 4) NOT NULL,
+    saldo DECIMAL(12, 2) NOT NULL,
     fecha DATETIME DEFAULT CURRENT_TIMESTAMP NOT NULL,
     tipo CHAR(1) DEFAULT 'e' NOT NULL,
     CONSTRAINT fk_det_egreso_cabecera FOREIGN KEY (id_egreso) REFERENCES egreso (id) ON DELETE RESTRICT ON UPDATE CASCADE,
     CONSTRAINT fk_det_egreso_articulo FOREIGN KEY (id_articulo) REFERENCES articulo (id) ON DELETE RESTRICT ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- 6. Libro Mayor de Inventario (Kardex Unificado e Inmutable)
+-- 6. Kardex Unificado 
 CREATE TABLE kardex_movimiento (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     id_articulo INT NOT NULL,
     tipo_movimiento ENUM('SALDO_INICIAL', 'INGRESO', 'EGRESO', 'REVERSO_EGRESO', 'AJUSTE') NOT NULL,
     documento_tipo VARCHAR(20) NOT NULL,
     documento_id INT NULL,
-    cantidad_entrada DECIMAL(12, 4) DEFAULT 0.0000 NOT NULL,
-    cantidad_salida DECIMAL(12, 4) DEFAULT 0.0000 NOT NULL,
-    saldo_resultante DECIMAL(12, 4) NOT NULL,
+    cantidad_entrada DECIMAL(12, 2) DEFAULT 0.00 NOT NULL,
+    cantidad_salida DECIMAL(12, 2) DEFAULT 0.00 NOT NULL,
+    saldo_resultante DECIMAL(12, 2) NOT NULL,
     id_usuario INT NOT NULL,
     fecha_hora DATETIME DEFAULT CURRENT_TIMESTAMP NOT NULL,
     CONSTRAINT fk_kardex_articulo FOREIGN KEY (id_articulo) REFERENCES articulo (id) ON DELETE RESTRICT ON UPDATE CASCADE,
