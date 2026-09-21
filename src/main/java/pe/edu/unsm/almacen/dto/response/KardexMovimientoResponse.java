@@ -7,12 +7,28 @@ import pe.edu.unsm.almacen.entity.TipoMovimiento;
 public record KardexMovimientoResponse(
         Long id,
         Integer idArticulo,
+        String codigoArticulo,
+        String descripcionArticulo,
+        LocalDateTime fecha,
         TipoMovimiento tipoMovimiento,
         String documentoTipo,
         Integer documentoId,
-        BigDecimal cantidadEntrada,
-        BigDecimal cantidadSalida,
+        String documentoReferencia,
+        BigDecimal entrada,
+        BigDecimal salida,
         BigDecimal saldoResultante,
         Integer idUsuario,
-        LocalDateTime fechaHora) {
+        String usuarioResponsable
+) {
+    public LocalDateTime fechaHora() {
+        return fecha;
+    }
+
+    public BigDecimal cantidadEntrada() {
+        return entrada;
+    }
+
+    public BigDecimal cantidadSalida() {
+        return salida;
+    }
 }
