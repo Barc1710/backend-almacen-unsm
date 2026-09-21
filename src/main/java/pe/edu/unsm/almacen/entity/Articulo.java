@@ -9,10 +9,13 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -24,6 +27,8 @@ import org.hibernate.annotations.ColumnDefault;
 @Getter
 @Setter
 @NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class Articulo {
 
     @Id
@@ -79,4 +84,23 @@ public class Articulo {
     @Column(name = "fecha", nullable = true, columnDefinition = "datetime")
     @ColumnDefault("CURRENT_TIMESTAMP")
     private LocalDateTime fecha;
+
+    @PrePersist
+    public void prePersist() {
+        if (this.saldo == null) {
+            this.saldo = BigDecimal.ZERO;
+        }
+        if (this.estado == null || this.estado.isBlank()) {
+            this.estado = "1";
+        }
+        if (this.activo == null) {
+            this.activo = true;
+        }
+        if (this.fecha == null) {
+            this.fecha = LocalDateTime.now();
+        }
+        if (this.detalle == null) {
+            this.detalle = "";
+        }
+    }
 }

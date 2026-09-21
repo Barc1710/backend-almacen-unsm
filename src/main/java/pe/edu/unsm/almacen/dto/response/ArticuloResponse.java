@@ -8,13 +8,17 @@ public record ArticuloResponse(
         String codigo,
         String descripcion,
         Integer idFamilia,
+        String nombreFamilia,
         Integer idMarca,
+        String nombreMarca,
         Integer idUbicacion,
+        String nombreUbicacion,
         BigDecimal saldo,
         BigDecimal cantidadMinima,
         BigDecimal precio,
         Boolean activo,
         String estado,
         String detalle,
-        LocalDateTime fecha) {
+        LocalDateTime fecha
+) {
 }
