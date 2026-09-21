@@ -6,7 +6,7 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import java.util.List;
 
-public record EgresoRequest(
+public record EgresoCreateRequest(
         @NotNull(message = "El cliente/destinatario es obligatorio")
         Integer idCliente,
 
@@ -29,7 +29,4 @@ public record EgresoRequest(
         @Valid
         List<DetalleEgresoRequest> detalles
 ) {
-    public EgresoCreateRequest toCreateRequest() {
-        return new EgresoCreateRequest(idCliente, idEncargado, idArea, idEncargadoAlmacen, ambiente, prefijo, detalles);
-    }
 }

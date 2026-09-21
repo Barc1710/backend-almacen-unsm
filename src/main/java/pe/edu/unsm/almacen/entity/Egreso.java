@@ -10,8 +10,11 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Index;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import java.time.LocalDateTime;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -23,6 +26,8 @@ import org.hibernate.annotations.ColumnDefault;
 @Getter
 @Setter
 @NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class Egreso {
 
     @Id
@@ -68,4 +73,26 @@ public class Egreso {
     @Column(name = "estado", nullable = false, length = 1, columnDefinition = "char(1)")
     @ColumnDefault("'1'")
     private String estado;
+
+    @PrePersist
+    public void prePersist() {
+        if (this.fecha == null) {
+            this.fecha = LocalDateTime.now();
+        }
+        if (this.estado == null || this.estado.isBlank()) {
+            this.estado = "1";
+        }
+        if (this.prefijo == null) {
+            this.prefijo = "";
+        }
+        if (this.correlativo == null) {
+            this.correlativo = 0;
+        }
+    }
+
+    public String getNumeroCompleto() {
+        String p = (prefijo != null && !prefijo.isBlank()) ? prefijo : "EGR";
+        int c = correlativo != null ? correlativo : 0;
+        return String.format("%s-%06d", p, c);
+    }
 }

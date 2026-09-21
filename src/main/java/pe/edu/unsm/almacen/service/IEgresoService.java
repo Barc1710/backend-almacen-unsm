@@ -1,15 +1,18 @@
 package pe.edu.unsm.almacen.service;
 
+import java.time.LocalDate;
 import org.springframework.data.domain.Pageable;
 import pe.edu.unsm.almacen.dto.common.PageResponse;
-import pe.edu.unsm.almacen.dto.request.EgresoRequest;
+import pe.edu.unsm.almacen.dto.request.EgresoCreateRequest;
 import pe.edu.unsm.almacen.dto.response.EgresoResponse;
 
 public interface IEgresoService {
 
-    PageResponse<EgresoResponse> listar(Pageable pageable);
+    PageResponse<EgresoResponse> listar(Integer idCliente, Integer idArea, LocalDate desde, LocalDate hasta, String estado, Pageable pageable);
 
     EgresoResponse obtenerPorId(Integer id);
 
-    EgresoResponse registrar(EgresoRequest request);
+    EgresoResponse registrar(EgresoCreateRequest request);
+
+    EgresoResponse anular(Integer id);
 }
