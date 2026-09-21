@@ -9,9 +9,12 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -22,6 +25,8 @@ import org.hibernate.annotations.ColumnDefault;
 @Getter
 @Setter
 @NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class DetalleIngreso {
 
     @Id
@@ -56,4 +61,17 @@ public class DetalleIngreso {
     @Column(name = "tipo", nullable = false, length = 1, columnDefinition = "char(1)")
     @ColumnDefault("'i'")
     private String tipo;
+
+    @PrePersist
+    public void prePersist() {
+        if (this.fecha == null) {
+            this.fecha = LocalDateTime.now();
+        }
+        if (this.tipo == null || this.tipo.isBlank()) {
+            this.tipo = "i";
+        }
+        if (this.precio == null) {
+            this.precio = BigDecimal.ZERO;
+        }
+    }
 }

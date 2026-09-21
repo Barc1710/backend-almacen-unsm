@@ -6,8 +6,11 @@ import java.util.List;
 public record IngresoResponse(
         Integer id,
         Integer idProveedor,
+        String razonSocialProveedor,
+        String rucProveedor,
         String descripcion,
         LocalDateTime fecha,
         String estado,
-        List<DetalleIngresoResponse> detalles) {
+        List<DetalleIngresoResponse> detalles
+) {
 }

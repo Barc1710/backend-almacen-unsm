@@ -12,9 +12,12 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Index;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -26,6 +29,8 @@ import org.hibernate.annotations.ColumnDefault;
 @Getter
 @Setter
 @NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class KardexMovimiento {
 
     @Id
@@ -67,4 +72,17 @@ public class KardexMovimiento {
     @Column(name = "fecha_hora", nullable = false, columnDefinition = "datetime")
     @ColumnDefault("CURRENT_TIMESTAMP")
     private LocalDateTime fechaHora;
+
+    @PrePersist
+    public void prePersist() {
+        if (this.fechaHora == null) {
+            this.fechaHora = LocalDateTime.now();
+        }
+        if (this.cantidadEntrada == null) {
+            this.cantidadEntrada = BigDecimal.ZERO;
+        }
+        if (this.cantidadSalida == null) {
+            this.cantidadSalida = BigDecimal.ZERO;
+        }
+    }
 }
