@@ -1,6 +1,7 @@
 package pe.edu.unsm.almacen.repository;
 
 import jakarta.persistence.LockModeType;
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.domain.Page;
@@ -8,9 +9,13 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import pe.edu.unsm.almacen.entity.Articulo;
+import pe.edu.unsm.almacen.entity.Familia;
+import pe.edu.unsm.almacen.entity.Marca;
+import pe.edu.unsm.almacen.entity.Ubicacion;
 
 public interface ArticuloRepository extends JpaRepository<Articulo, Integer> {
 
@@ -52,5 +57,25 @@ public interface ArticuloRepository extends JpaRepository<Articulo, Integer> {
 
     boolean existsByCodigo(String codigo);
 
-    boolean existsByCodigoAndIdNot(String codigo, Integer id);
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
+    @Query("UPDATE Articulo a SET a.descripcion = :desc, a.familia = :familia, a.marca = :marca, a.ubicacion = :ubicacion, " +
+           "a.cantidadMinima = :min, a.precio = :precio, a.detalle = :det WHERE a.id = :id")
+    int actualizarDatosMaestros(
+            @Param("id") Integer id,
+            @Param("desc") String desc,
+            @Param("familia") Familia familia,
+            @Param("marca") Marca marca,
+            @Param("ubicacion") Ubicacion ubicacion,
+            @Param("min") BigDecimal min,
+            @Param("precio") BigDecimal precio,
+            @Param("det") String det
+    );
+
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
+    @Query("UPDATE Articulo a SET a.estado = :estado WHERE a.id = :id")
+    int actualizarEstado(@Param("id") Integer id, @Param("estado") String estado);
+
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
+    @Query("UPDATE Articulo a SET a.activo = :activo WHERE a.id = :id")
+    int actualizarActivo(@Param("id") Integer id, @Param("activo") Boolean activo);
 }

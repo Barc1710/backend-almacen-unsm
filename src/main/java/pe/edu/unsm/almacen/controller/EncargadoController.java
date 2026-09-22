@@ -8,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -32,6 +33,7 @@ public class EncargadoController {
     private final IEncargadoService encargadoService;
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ADMIN', 'OPERADOR')")
     @Operation(summary = "Listar encargados paginados", description = "Retorna un listado paginado con filtro de búsqueda opcional por nombres, apellidos, DNI o ambiente")
     public ResponseEntity<ApiResponse<PageResponse<EncargadoResponse>>> listar(
             @RequestParam(name = "filtro", required = false) String filtro,
@@ -41,6 +43,7 @@ public class EncargadoController {
     }
 
     @GetMapping("/activos")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ADMIN', 'OPERADOR')")
     @Operation(summary = "Listar encargados activos", description = "Retorna todos los encargados activos para combos y selección")
     public ResponseEntity<ApiResponse<List<EncargadoResponse>>> listarActivos() {
         List<EncargadoResponse> response = encargadoService.listarActivos();
@@ -48,6 +51,7 @@ public class EncargadoController {
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ADMIN', 'OPERADOR')")
     @Operation(summary = "Obtener encargado por ID", description = "Retorna el detalle de un encargado específico")
     public ResponseEntity<ApiResponse<EncargadoResponse>> obtenerPorId(@PathVariable("id") Integer id) {
         EncargadoResponse response = encargadoService.obtenerPorId(id);
@@ -55,6 +59,7 @@ public class EncargadoController {
     }
 
     @PostMapping
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ADMIN', 'OPERADOR')")
     @Operation(summary = "Crear nuevo encargado", description = "Registra un nuevo encargado en el sistema")
     public ResponseEntity<ApiResponse<EncargadoResponse>> crear(@Valid @RequestBody EncargadoRequest request) {
         EncargadoResponse response = encargadoService.crear(request);
@@ -63,6 +68,7 @@ public class EncargadoController {
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ADMIN', 'OPERADOR')")
     @Operation(summary = "Actualizar encargado", description = "Actualiza los datos de un encargado existente")
     public ResponseEntity<ApiResponse<EncargadoResponse>> actualizar(
             @PathVariable("id") Integer id,
@@ -72,6 +78,7 @@ public class EncargadoController {
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ADMIN')")
     @Operation(summary = "Borrado lógico de encargado", description = "Desactiva un encargado cambiando su estado a '0'")
     public ResponseEntity<ApiResponse<Void>> eliminar(@PathVariable("id") Integer id) {
         encargadoService.cambiarEstado(id, "0");

@@ -1,7 +1,6 @@
 package pe.edu.unsm.almacen.repository;
 
 import java.time.LocalDateTime;
-import java.util.List;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.EntityGraph;
@@ -11,9 +10,6 @@ import org.springframework.data.repository.query.Param;
 import pe.edu.unsm.almacen.entity.KardexMovimiento;
 
 public interface KardexMovimientoRepository extends JpaRepository<KardexMovimiento, Long> {
-
-    @EntityGraph(attributePaths = {"articulo", "usuario"})
-    List<KardexMovimiento> findByArticulo_IdOrderByFechaHoraDescIdDesc(Integer idArticulo);
 
     @Query(value = """
         SELECT k FROM KardexMovimiento k

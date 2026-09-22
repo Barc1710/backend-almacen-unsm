@@ -7,6 +7,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -26,6 +27,7 @@ public class KardexController {
     private final IKardexService kardexService;
 
     @GetMapping({"/articulo/{idArticulo}", "/articulos/{idArticulo}"})
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ADMIN', 'OPERADOR')")
     @Operation(summary = "Consultar Kardex de un artículo", description = "Retorna el historial cronológico paginado de movimientos de un artículo con filtros opcionales de fecha")
     public ResponseEntity<ApiResponse<PageResponse<KardexMovimientoResponse>>> listarPorArticulo(
             @PathVariable("idArticulo") Integer idArticulo,
@@ -37,6 +39,7 @@ public class KardexController {
     }
 
     @GetMapping("/general")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ADMIN')")
     @Operation(summary = "Consultar historial general de auditoría de Kardex", description = "Retorna el historial paginado de todos los movimientos de almacén con filtros opcionales de rango de fechas")
     public ResponseEntity<ApiResponse<PageResponse<KardexMovimientoResponse>>> listarGeneral(
             @RequestParam(name = "desde", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate desde,

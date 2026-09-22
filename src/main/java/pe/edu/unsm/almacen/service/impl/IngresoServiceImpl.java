@@ -1,13 +1,17 @@
 package pe.edu.unsm.almacen.service.impl;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.LocalTime;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 import java.util.Set;
+import org.springframework.security.access.AccessDeniedException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -28,6 +32,7 @@ import pe.edu.unsm.almacen.entity.KardexMovimiento;
 import pe.edu.unsm.almacen.entity.Proveedor;
 import pe.edu.unsm.almacen.entity.TipoMovimiento;
 import pe.edu.unsm.almacen.entity.Usuario;
+import pe.edu.unsm.almacen.exception.BusinessException;
 import pe.edu.unsm.almacen.exception.DuplicateResourceException;
 import pe.edu.unsm.almacen.exception.ResourceNotFoundException;
 import pe.edu.unsm.almacen.repository.ArticuloRepository;
@@ -55,10 +60,15 @@ public class IngresoServiceImpl implements IIngresoService {
     @Transactional(readOnly = true)
     public PageResponse<IngresoResponse> listar(Integer idProveedor, LocalDate desde, LocalDate hasta, Pageable pageable) {
         LocalDateTime desdeDateTime = desde != null ? desde.atStartOfDay() : null;
-        LocalDateTime hastaDateTime = hasta != null ? hasta.atTime(LocalTime.MAX) : null;
+        LocalDateTime hastaDateTime = hasta != null ? hasta.atTime(23, 59, 59) : null;
 
         Page<Ingreso> page = ingresoRepository.listarPaginado(idProveedor, desdeDateTime, hastaDateTime, pageable);
-        return PageResponse.of(page.map(this::construirIngresoResponse));
+        List<Integer> ids = page.getContent().stream().map(Ingreso::getId).toList();
+        Map<Integer, BigDecimal> totales = ids.isEmpty() ? Map.of()
+                : detalleIngresoRepository.sumarTotalesPorIngresoIds(ids).stream()
+                        .collect(Collectors.toMap(row -> (Integer) row[0], row -> extraerMontoSeguro(row[1])));
+        return PageResponse.of(page.map(ingreso -> construirIngresoResumenResponse(
+                ingreso, totales.getOrDefault(ingreso.getId(), BigDecimal.ZERO).setScale(2, RoundingMode.HALF_UP))));
     }
 
     @Override
@@ -85,6 +95,11 @@ public class IngresoServiceImpl implements IIngresoService {
             }
         }
 
+        // Ordenamiento global de bloqueos por idArticulo ascendente para prevenir deadlocks
+        List<DetalleItemRequest> detallesOrdenados = request.detalles().stream()
+                .sorted(Comparator.comparing(DetalleItemRequest::idArticulo))
+                .toList();
+
         Proveedor proveedor = proveedorRepository.findById(request.idProveedor())
                 .orElseThrow(() -> new ResourceNotFoundException("Proveedor no encontrado con ID: " + request.idProveedor()));
 
@@ -101,13 +116,13 @@ public class IngresoServiceImpl implements IIngresoService {
         List<DetalleIngresoResponse> detallesResponse = new ArrayList<>();
 
         // b) Por cada artículo: bloquear registro, sumar saldo, actualizar maestro, guardar detalle y kardex
-        for (DetalleItemRequest item : request.detalles()) {
+        for (DetalleItemRequest item : detallesOrdenados) {
             Articulo articulo = articuloRepository.findByIdWithLock(item.idArticulo())
                     .orElseThrow(() -> new ResourceNotFoundException("Artículo no encontrado con ID: " + item.idArticulo()));
 
             // 4. Validación de Vigencia
             if (!"1".equals(articulo.getEstado())) {
-                throw new DuplicateResourceException(
+                throw new BusinessException(
                         "El artículo '" + articulo.getCodigo() + "' se encuentra dado de baja (inactivo) y no puede recibir ingresos."
                 );
             }
@@ -116,10 +131,9 @@ public class IngresoServiceImpl implements IIngresoService {
             BigDecimal cantidad = item.cantidad();
             BigDecimal nuevoSaldo = saldoAnterior.add(cantidad);
 
-            // 3. Actualización del Maestro de Artículos (saldo, precio de reposición y habilitación activa)
+            // 3. Actualización del Maestro de Artículos (saldo y precio de reposición; se conserva la operatividad)
             articulo.setSaldo(nuevoSaldo);
             articulo.setPrecio(item.precio());
-            articulo.setActivo(true);
             articuloRepository.save(articulo);
 
             // 2. Integridad en DetalleIngreso (saldo = nuevoSaldo)
@@ -171,6 +185,7 @@ public class IngresoServiceImpl implements IIngresoService {
                 ingresoGuardado.getDescripcion(),
                 ingresoGuardado.getFecha(),
                 ingresoGuardado.getEstado(),
+                calcularTotal(detallesResponse),
                 detallesResponse
         );
     }
@@ -199,8 +214,29 @@ public class IngresoServiceImpl implements IIngresoService {
                 ingreso.getDescripcion(),
                 ingreso.getFecha(),
                 ingreso.getEstado(),
+                calcularTotal(detallesResponse),
                 detallesResponse
         );
+    }
+
+    private IngresoResponse construirIngresoResumenResponse(Ingreso ingreso, BigDecimal total) {
+        return new IngresoResponse(
+                ingreso.getId(),
+                ingreso.getProveedor() != null ? ingreso.getProveedor().getId() : null,
+                ingreso.getProveedor() != null ? ingreso.getProveedor().getRazonSocial() : null,
+                ingreso.getProveedor() != null ? ingreso.getProveedor().getRuc() : null,
+                ingreso.getDescripcion(),
+                ingreso.getFecha(),
+                ingreso.getEstado(),
+                total,
+                List.of()
+        );
+    }
+
+    private BigDecimal calcularTotal(List<DetalleIngresoResponse> detalles) {
+        return detalles.stream()
+                .map(d -> d.cantidad().multiply(d.precio()).setScale(2, RoundingMode.HALF_UP))
+                .reduce(BigDecimal.ZERO.setScale(2), BigDecimal::add);
     }
 
     private Usuario obtenerUsuarioActual() {
@@ -209,7 +245,13 @@ public class IngresoServiceImpl implements IIngresoService {
             return usuarioRepository.findById(userDetails.getId())
                     .orElseThrow(() -> new ResourceNotFoundException("Usuario autenticado no encontrado en base de datos"));
         }
-        return usuarioRepository.findAll().stream().findFirst()
-                .orElseThrow(() -> new ResourceNotFoundException("No se encontró ningún usuario del sistema para registrar la auditoría Kardex"));
+        throw new AccessDeniedException("Operación denegada: no existe identidad autenticada para auditar el ingreso");
+    }
+
+    private BigDecimal extraerMontoSeguro(Object valor) {
+        if (valor == null) return BigDecimal.ZERO;
+        if (valor instanceof BigDecimal bd) return bd;
+        if (valor instanceof Number num) return BigDecimal.valueOf(num.doubleValue());
+        return new BigDecimal(valor.toString());
     }
 }

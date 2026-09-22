@@ -8,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -32,6 +33,7 @@ public class ProveedorController {
     private final IProveedorService proveedorService;
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ADMIN', 'OPERADOR')")
     @Operation(summary = "Listar proveedores paginados", description = "Retorna un listado paginado con filtro de búsqueda opcional por RUC, razón social o contacto")
     public ResponseEntity<ApiResponse<PageResponse<ProveedorResponse>>> listar(
             @RequestParam(name = "filtro", required = false) String filtro,
@@ -41,6 +43,7 @@ public class ProveedorController {
     }
 
     @GetMapping("/activos")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ADMIN', 'OPERADOR')")
     @Operation(summary = "Listar proveedores activos", description = "Retorna todos los proveedores activos para combos y selección")
     public ResponseEntity<ApiResponse<List<ProveedorResponse>>> listarActivos() {
         List<ProveedorResponse> response = proveedorService.listarActivos();
@@ -48,6 +51,7 @@ public class ProveedorController {
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ADMIN', 'OPERADOR')")
     @Operation(summary = "Obtener proveedor por ID", description = "Retorna el detalle de un proveedor específico")
     public ResponseEntity<ApiResponse<ProveedorResponse>> obtenerPorId(@PathVariable("id") Integer id) {
         ProveedorResponse response = proveedorService.obtenerPorId(id);
@@ -55,6 +59,7 @@ public class ProveedorController {
     }
 
     @PostMapping
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ADMIN', 'OPERADOR')")
     @Operation(summary = "Crear nuevo proveedor", description = "Registra un nuevo proveedor con validación estricta de RUC")
     public ResponseEntity<ApiResponse<ProveedorResponse>> crear(@Valid @RequestBody ProveedorRequest request) {
         ProveedorResponse response = proveedorService.crear(request);
@@ -63,6 +68,7 @@ public class ProveedorController {
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ADMIN', 'OPERADOR')")
     @Operation(summary = "Actualizar proveedor", description = "Actualiza los datos de un proveedor existente")
     public ResponseEntity<ApiResponse<ProveedorResponse>> actualizar(
             @PathVariable("id") Integer id,
@@ -72,6 +78,7 @@ public class ProveedorController {
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ADMIN')")
     @Operation(summary = "Borrado lógico de proveedor", description = "Desactiva un proveedor cambiando su estado a '0'")
     public ResponseEntity<ApiResponse<Void>> eliminar(@PathVariable("id") Integer id) {
         proveedorService.cambiarEstado(id, "0");

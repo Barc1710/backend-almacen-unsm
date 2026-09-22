@@ -33,4 +33,13 @@ public class Perfil {
     @Column(name = "estadoperfil", nullable = false)
     @ColumnDefault("1")
     private Byte estadoPerfil;
+
+    public Integer getEstado() {
+        return estadoPerfil != null ? estadoPerfil.intValue() : null;
+    }
+
+    public void setEstado(Integer estado) {
+        this.estadoPerfil = estado != null ? estado.byteValue() : null;
+    }
 }
+

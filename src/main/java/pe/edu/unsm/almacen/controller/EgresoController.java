@@ -9,6 +9,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -32,6 +33,7 @@ public class EgresoController {
     private final IEgresoService egresoService;
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ADMIN', 'OPERADOR')")
     @Operation(summary = "Listar egresos paginados", description = "Retorna el listado paginado de egresos con filtros opcionales de cliente, área, estado y rango de fechas")
     public ResponseEntity<ApiResponse<PageResponse<EgresoResponse>>> listar(
             @RequestParam(name = "idCliente", required = false) Integer idCliente,
@@ -45,6 +47,7 @@ public class EgresoController {
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ADMIN', 'OPERADOR')")
     @Operation(summary = "Obtener egreso por ID", description = "Retorna el detalle completo de un egreso junto con las líneas despachadas")
     public ResponseEntity<ApiResponse<EgresoResponse>> obtenerPorId(@PathVariable("id") Integer id) {
         EgresoResponse response = egresoService.obtenerPorId(id);
@@ -52,6 +55,7 @@ public class EgresoController {
     }
 
     @PostMapping
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ADMIN', 'OPERADOR')")
     @Operation(summary = "Registrar nuevo egreso/despacho", description = "Registra un despacho de artículos, descuenta stock con bloqueo pesimista y asienta movimientos en Kardex")
     public ResponseEntity<ApiResponse<EgresoResponse>> registrar(@Valid @RequestBody EgresoCreateRequest request) {
         EgresoResponse response = egresoService.registrar(request);
@@ -64,6 +68,7 @@ public class EgresoController {
     }
 
     @PostMapping("/{id}/anular")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ADMIN')")
     @Operation(summary = "Anular egreso", description = "Anula un egreso activo, restituye el stock a cada artículo mediante bloqueo pesimista y registra el contracargo en Kardex")
     public ResponseEntity<ApiResponse<EgresoResponse>> anular(@PathVariable("id") Integer id) {
         EgresoResponse response = egresoService.anular(id);

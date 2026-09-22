@@ -9,6 +9,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -31,6 +32,7 @@ public class IngresoController {
     private final IIngresoService ingresoService;
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ADMIN', 'OPERADOR')")
     @Operation(summary = "Listar ingresos paginados", description = "Retorna listado paginado de ingresos con filtros opcionales de proveedor y rango de fechas")
     public ResponseEntity<ApiResponse<PageResponse<IngresoResponse>>> listar(
             @RequestParam(name = "idProveedor", required = false) Integer idProveedor,
@@ -42,6 +44,7 @@ public class IngresoController {
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ADMIN', 'OPERADOR')")
     @Operation(summary = "Obtener ingreso por ID", description = "Retorna el detalle completo de un ingreso con todas sus líneas de artículos")
     public ResponseEntity<ApiResponse<IngresoResponse>> obtenerPorId(@PathVariable("id") Integer id) {
         IngresoResponse response = ingresoService.obtenerPorId(id);
@@ -49,6 +52,7 @@ public class IngresoController {
     }
 
     @PostMapping
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ADMIN', 'OPERADOR')")
     @Operation(summary = "Registrar nuevo ingreso", description = "Registra una entrada de artículos a almacén, actualiza el stock con bloqueo pesimista y genera asientos de auditoría en Kardex")
     public ResponseEntity<ApiResponse<IngresoResponse>> registrar(@Valid @RequestBody IngresoCreateRequest request) {
         IngresoResponse response = ingresoService.registrar(request);

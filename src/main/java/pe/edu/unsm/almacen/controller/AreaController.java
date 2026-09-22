@@ -8,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -32,6 +33,7 @@ public class AreaController {
     private final IAreaService areaService;
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ADMIN', 'OPERADOR')")
     @Operation(summary = "Listar áreas paginadas", description = "Retorna un listado paginado con filtro de búsqueda opcional por nombre")
     public ResponseEntity<ApiResponse<PageResponse<AreaResponse>>> listar(
             @RequestParam(name = "filtro", required = false) String filtro,
@@ -41,6 +43,7 @@ public class AreaController {
     }
 
     @GetMapping("/activos")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ADMIN', 'OPERADOR')")
     @Operation(summary = "Listar áreas activas", description = "Retorna todas las áreas activas para combos y selección")
     public ResponseEntity<ApiResponse<List<AreaResponse>>> listarActivos() {
         List<AreaResponse> response = areaService.listarActivos();
@@ -48,6 +51,7 @@ public class AreaController {
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ADMIN', 'OPERADOR')")
     @Operation(summary = "Obtener área por ID", description = "Retorna el detalle de un área específica")
     public ResponseEntity<ApiResponse<AreaResponse>> obtenerPorId(@PathVariable("id") Integer id) {
         AreaResponse response = areaService.obtenerPorId(id);
@@ -55,6 +59,7 @@ public class AreaController {
     }
 
     @PostMapping
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ADMIN', 'OPERADOR')")
     @Operation(summary = "Crear nueva área", description = "Registra una nueva área en el sistema")
     public ResponseEntity<ApiResponse<AreaResponse>> crear(@Valid @RequestBody AreaRequest request) {
         AreaResponse response = areaService.crear(request);
@@ -63,6 +68,7 @@ public class AreaController {
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ADMIN', 'OPERADOR')")
     @Operation(summary = "Actualizar área", description = "Actualiza los datos de un área existente")
     public ResponseEntity<ApiResponse<AreaResponse>> actualizar(
             @PathVariable("id") Integer id,
@@ -72,6 +78,7 @@ public class AreaController {
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ADMIN')")
     @Operation(summary = "Borrado lógico de área", description = "Desactiva un área cambiando su estado a '0'")
     public ResponseEntity<ApiResponse<Void>> eliminar(@PathVariable("id") Integer id) {
         areaService.cambiarEstado(id, "0");

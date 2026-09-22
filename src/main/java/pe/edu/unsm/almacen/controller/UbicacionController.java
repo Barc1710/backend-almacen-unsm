@@ -8,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -32,6 +33,7 @@ public class UbicacionController {
     private final IUbicacionService ubicacionService;
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ADMIN', 'OPERADOR')")
     @Operation(summary = "Listar ubicaciones paginadas", description = "Retorna un listado paginado con filtro de búsqueda opcional por nombre o descripción")
     public ResponseEntity<ApiResponse<PageResponse<UbicacionResponse>>> listar(
             @RequestParam(name = "filtro", required = false) String filtro,
@@ -41,6 +43,7 @@ public class UbicacionController {
     }
 
     @GetMapping("/activos")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ADMIN', 'OPERADOR')")
     @Operation(summary = "Listar ubicaciones activas", description = "Retorna todas las ubicaciones activas para combos y selección")
     public ResponseEntity<ApiResponse<List<UbicacionResponse>>> listarActivos() {
         List<UbicacionResponse> response = ubicacionService.listarActivos();
@@ -48,6 +51,7 @@ public class UbicacionController {
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ADMIN', 'OPERADOR')")
     @Operation(summary = "Obtener ubicación por ID", description = "Retorna el detalle de una ubicación específica")
     public ResponseEntity<ApiResponse<UbicacionResponse>> obtenerPorId(@PathVariable("id") Integer id) {
         UbicacionResponse response = ubicacionService.obtenerPorId(id);
@@ -55,6 +59,7 @@ public class UbicacionController {
     }
 
     @PostMapping
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ADMIN', 'OPERADOR')")
     @Operation(summary = "Crear nueva ubicación", description = "Registra una nueva ubicación física en el almacén")
     public ResponseEntity<ApiResponse<UbicacionResponse>> crear(@Valid @RequestBody UbicacionRequest request) {
         UbicacionResponse response = ubicacionService.crear(request);
@@ -63,6 +68,7 @@ public class UbicacionController {
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ADMIN', 'OPERADOR')")
     @Operation(summary = "Actualizar ubicación", description = "Actualiza los datos de una ubicación existente")
     public ResponseEntity<ApiResponse<UbicacionResponse>> actualizar(
             @PathVariable("id") Integer id,
@@ -72,6 +78,7 @@ public class UbicacionController {
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ADMIN')")
     @Operation(summary = "Borrado lógico de ubicación", description = "Desactiva una ubicación cambiando su estado a '0'")
     public ResponseEntity<ApiResponse<Void>> eliminar(@PathVariable("id") Integer id) {
         ubicacionService.cambiarEstado(id, "0");

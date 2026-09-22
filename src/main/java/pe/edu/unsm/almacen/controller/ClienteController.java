@@ -8,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -32,6 +33,7 @@ public class ClienteController {
     private final IClienteService clienteService;
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ADMIN', 'OPERADOR')")
     @Operation(summary = "Listar clientes paginados", description = "Retorna un listado paginado con filtro de búsqueda opcional por nombre, DNI o correo")
     public ResponseEntity<ApiResponse<PageResponse<ClienteResponse>>> listar(
             @RequestParam(name = "filtro", required = false) String filtro,
@@ -41,6 +43,7 @@ public class ClienteController {
     }
 
     @GetMapping("/activos")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ADMIN', 'OPERADOR')")
     @Operation(summary = "Listar clientes activos", description = "Retorna todos los clientes activos para combos y selección")
     public ResponseEntity<ApiResponse<List<ClienteResponse>>> listarActivos() {
         List<ClienteResponse> response = clienteService.listarActivos();
@@ -48,6 +51,7 @@ public class ClienteController {
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ADMIN', 'OPERADOR')")
     @Operation(summary = "Obtener cliente por ID", description = "Retorna el detalle de un cliente específico")
     public ResponseEntity<ApiResponse<ClienteResponse>> obtenerPorId(@PathVariable("id") Integer id) {
         ClienteResponse response = clienteService.obtenerPorId(id);
@@ -55,6 +59,7 @@ public class ClienteController {
     }
 
     @PostMapping
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ADMIN', 'OPERADOR')")
     @Operation(summary = "Crear nuevo cliente", description = "Registra un nuevo cliente con validaciones de formato")
     public ResponseEntity<ApiResponse<ClienteResponse>> crear(@Valid @RequestBody ClienteRequest request) {
         ClienteResponse response = clienteService.crear(request);
@@ -63,6 +68,7 @@ public class ClienteController {
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ADMIN', 'OPERADOR')")
     @Operation(summary = "Actualizar cliente", description = "Actualiza los datos de un cliente existente")
     public ResponseEntity<ApiResponse<ClienteResponse>> actualizar(
             @PathVariable("id") Integer id,
@@ -72,6 +78,7 @@ public class ClienteController {
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ADMIN')")
     @Operation(summary = "Borrado lógico de cliente", description = "Desactiva un cliente cambiando su estado a '0'")
     public ResponseEntity<ApiResponse<Void>> eliminar(@PathVariable("id") Integer id) {
         clienteService.cambiarEstado(id, "0");

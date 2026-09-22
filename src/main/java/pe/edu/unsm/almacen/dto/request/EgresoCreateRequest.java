@@ -25,8 +25,8 @@ public record EgresoCreateRequest(
         @Size(max = 10, message = "El prefijo no puede exceder los 10 caracteres")
         String prefijo,
 
-        @NotEmpty(message = "Debe incluir al menos un artículo para registrar el despacho")
-        @Valid
-        List<DetalleEgresoRequest> detalles
+        @NotEmpty(message = "El documento debe incluir al menos una línea de detalle")
+        @Size(max = 100, message = "No se pueden procesar más de 100 líneas por transacción")
+        List<@NotNull(message = "La línea de detalle no puede ser nula") @Valid DetalleEgresoRequest> detalles
 ) {
 }

@@ -54,7 +54,11 @@ public class UserDetailsImpl implements UserDetails {
                 : "ROLE_" + nombrePerfil.toUpperCase();
 
         List<GrantedAuthority> authorities = Collections.singletonList(new SimpleGrantedAuthority(roleName));
-        boolean activo = "1".equals(usuario.getEstado());
+        boolean usuarioActivo = "1".equals(usuario.getEstado());
+        boolean perfilActivo = usuario.getPerfil() != null
+                && usuario.getPerfil().getEstado() != null
+                && usuario.getPerfil().getEstado() == 1;
+        boolean activo = usuarioActivo && perfilActivo;
 
         return new UserDetailsImpl(
                 usuario.getIdUsuario(),

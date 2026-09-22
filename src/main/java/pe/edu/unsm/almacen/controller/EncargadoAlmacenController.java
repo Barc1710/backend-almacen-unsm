@@ -8,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -32,6 +33,7 @@ public class EncargadoAlmacenController {
     private final IEncargadoAlmacenService encargadoAlmacenService;
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ADMIN', 'OPERADOR')")
     @Operation(summary = "Listar encargados de almacén paginados", description = "Retorna un listado paginado con filtro de búsqueda opcional por nombre")
     public ResponseEntity<ApiResponse<PageResponse<EncargadoAlmacenResponse>>> listar(
             @RequestParam(name = "filtro", required = false) String filtro,
@@ -41,6 +43,7 @@ public class EncargadoAlmacenController {
     }
 
     @GetMapping("/activos")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ADMIN', 'OPERADOR')")
     @Operation(summary = "Listar encargados de almacén activos", description = "Retorna todos los encargados de almacén activos para combos y selección")
     public ResponseEntity<ApiResponse<List<EncargadoAlmacenResponse>>> listarActivos() {
         List<EncargadoAlmacenResponse> response = encargadoAlmacenService.listarActivos();
@@ -48,6 +51,7 @@ public class EncargadoAlmacenController {
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ADMIN', 'OPERADOR')")
     @Operation(summary = "Obtener encargado de almacén por ID", description = "Retorna el detalle de un encargado de almacén específico")
     public ResponseEntity<ApiResponse<EncargadoAlmacenResponse>> obtenerPorId(@PathVariable("id") Integer id) {
         EncargadoAlmacenResponse response = encargadoAlmacenService.obtenerPorId(id);
@@ -55,6 +59,7 @@ public class EncargadoAlmacenController {
     }
 
     @PostMapping
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ADMIN', 'OPERADOR')")
     @Operation(summary = "Crear nuevo encargado de almacén", description = "Registra un nuevo encargado de almacén en el sistema")
     public ResponseEntity<ApiResponse<EncargadoAlmacenResponse>> crear(@Valid @RequestBody EncargadoAlmacenRequest request) {
         EncargadoAlmacenResponse response = encargadoAlmacenService.crear(request);
@@ -63,6 +68,7 @@ public class EncargadoAlmacenController {
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ADMIN', 'OPERADOR')")
     @Operation(summary = "Actualizar encargado de almacén", description = "Actualiza los datos de un encargado de almacén existente")
     public ResponseEntity<ApiResponse<EncargadoAlmacenResponse>> actualizar(
             @PathVariable("id") Integer id,
@@ -72,6 +78,7 @@ public class EncargadoAlmacenController {
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ADMIN')")
     @Operation(summary = "Borrado lógico de encargado de almacén", description = "Desactiva un encargado de almacén cambiando su estado a '0'")
     public ResponseEntity<ApiResponse<Void>> eliminar(@PathVariable("id") Integer id) {
         encargadoAlmacenService.cambiarEstado(id, "0");

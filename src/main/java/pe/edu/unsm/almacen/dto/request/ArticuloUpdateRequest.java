@@ -1,5 +1,6 @@
 package pe.edu.unsm.almacen.dto.request;
 
+import jakarta.validation.constraints.Digits;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.PositiveOrZero;
@@ -22,10 +23,12 @@ public record ArticuloUpdateRequest(
 
         @NotNull(message = "La cantidad mínima es obligatoria")
         @PositiveOrZero(message = "La cantidad mínima debe ser mayor o igual a 0")
+        @Digits(integer = 10, fraction = 2, message = "El stock mínimo admite como máximo 2 decimales")
         BigDecimal cantidadMinima,
 
         @NotNull(message = "El precio es obligatorio")
         @PositiveOrZero(message = "El precio debe ser mayor o igual a 0")
+        @Digits(integer = 10, fraction = 2, message = "El precio admite como máximo 2 decimales")
         BigDecimal precio,
 
         @Size(max = 255, message = "El detalle no debe exceder 255 caracteres")

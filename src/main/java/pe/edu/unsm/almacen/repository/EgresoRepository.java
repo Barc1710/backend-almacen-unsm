@@ -15,10 +15,7 @@ import pe.edu.unsm.almacen.entity.Egreso;
 public interface EgresoRepository extends JpaRepository<Egreso, Integer> {
 
     @Query("SELECT COALESCE(MAX(e.correlativo), 0) FROM Egreso e WHERE e.prefijo = :prefijo")
-    Integer obtenerUltimoCorrelativo(@Param("prefijo") String prefijo);
-
-    @Lock(LockModeType.PESSIMISTIC_WRITE)
-    Optional<Egreso> findFirstByPrefijoOrderByCorrelativoDesc(String prefijo);
+    Integer obtenerMaximoCorrelativo(@Param("prefijo") String prefijo);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT e FROM Egreso e WHERE e.id = :id")

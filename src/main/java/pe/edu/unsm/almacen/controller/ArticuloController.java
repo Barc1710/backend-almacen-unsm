@@ -8,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -35,6 +36,7 @@ public class ArticuloController {
     private final IArticuloService articuloService;
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ADMIN', 'OPERADOR')")
     @Operation(summary = "Listar artículos paginados", description = "Retorna un listado administrativo paginado con filtros combinados (código, descripción, familia, estado)")
     public ResponseEntity<ApiResponse<PageResponse<ArticuloResponse>>> listar(
             @RequestParam(name = "filtro", required = false) String filtro,
@@ -48,6 +50,7 @@ public class ArticuloController {
     }
 
     @GetMapping("/buscar")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ADMIN', 'OPERADOR')")
     @Operation(summary = "Búsqueda predictiva de artículos", description = "Retorna lista liviana de artículos activos para autocompletado en despachos y consultas rápidas")
     public ResponseEntity<ApiResponse<List<ArticuloResumenResponse>>> buscarPredictivo(
             @RequestParam(name = "q", required = false) String q) {
@@ -56,6 +59,7 @@ public class ArticuloController {
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ADMIN', 'OPERADOR')")
     @Operation(summary = "Obtener artículo por ID", description = "Retorna el detalle completo de un artículo específico")
     public ResponseEntity<ApiResponse<ArticuloResponse>> obtenerPorId(@PathVariable("id") Integer id) {
         ArticuloResponse response = articuloService.obtenerPorId(id);
@@ -63,6 +67,7 @@ public class ArticuloController {
     }
 
     @PostMapping
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ADMIN', 'OPERADOR')")
     @Operation(summary = "Crear nuevo artículo", description = "Registra un artículo nuevo en el sistema con saldo inicial en cero")
     public ResponseEntity<ApiResponse<ArticuloResponse>> crear(@Valid @RequestBody ArticuloCreateRequest request) {
         ArticuloResponse response = articuloService.crear(request);
@@ -71,6 +76,7 @@ public class ArticuloController {
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ADMIN', 'OPERADOR')")
     @Operation(summary = "Actualizar artículo", description = "Actualiza los datos maestros de un artículo existente sin modificar existencias")
     public ResponseEntity<ApiResponse<ArticuloResponse>> actualizar(
             @PathVariable("id") Integer id,
@@ -80,6 +86,7 @@ public class ArticuloController {
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ADMIN')")
     @Operation(summary = "Borrado lógico de artículo", description = "Desactiva un artículo cambiando su estado a '0'")
     public ResponseEntity<ApiResponse<Void>> eliminar(@PathVariable("id") Integer id) {
         articuloService.cambiarEstado(id, "0");
@@ -87,6 +94,7 @@ public class ArticuloController {
     }
 
     @PatchMapping("/{id}/toggle-activo")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ADMIN')")
     @Operation(summary = "Alternar operatividad de artículo", description = "Habilita o deshabilita la operatividad de un artículo para movimientos")
     public ResponseEntity<ApiResponse<ArticuloResponse>> toggleActivo(@PathVariable("id") Integer id) {
         ArticuloResponse response = articuloService.toggleActivo(id);

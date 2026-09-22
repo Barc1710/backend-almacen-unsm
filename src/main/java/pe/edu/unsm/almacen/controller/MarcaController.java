@@ -8,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -32,6 +33,7 @@ public class MarcaController {
     private final IMarcaService marcaService;
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ADMIN', 'OPERADOR')")
     @Operation(summary = "Listar marcas paginadas", description = "Retorna un listado paginado con filtro de búsqueda opcional por nombre")
     public ResponseEntity<ApiResponse<PageResponse<MarcaResponse>>> listar(
             @RequestParam(name = "filtro", required = false) String filtro,
@@ -41,6 +43,7 @@ public class MarcaController {
     }
 
     @GetMapping("/activos")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ADMIN', 'OPERADOR')")
     @Operation(summary = "Listar marcas activas", description = "Retorna todas las marcas activas para combos y selección")
     public ResponseEntity<ApiResponse<List<MarcaResponse>>> listarActivos() {
         List<MarcaResponse> response = marcaService.listarActivos();
@@ -48,6 +51,7 @@ public class MarcaController {
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ADMIN', 'OPERADOR')")
     @Operation(summary = "Obtener marca por ID", description = "Retorna el detalle de una marca específica")
     public ResponseEntity<ApiResponse<MarcaResponse>> obtenerPorId(@PathVariable("id") Integer id) {
         MarcaResponse response = marcaService.obtenerPorId(id);
@@ -55,6 +59,7 @@ public class MarcaController {
     }
 
     @PostMapping
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ADMIN', 'OPERADOR')")
     @Operation(summary = "Crear nueva marca", description = "Registra una nueva marca en el sistema")
     public ResponseEntity<ApiResponse<MarcaResponse>> crear(@Valid @RequestBody MarcaRequest request) {
         MarcaResponse response = marcaService.crear(request);
@@ -63,6 +68,7 @@ public class MarcaController {
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ADMIN', 'OPERADOR')")
     @Operation(summary = "Actualizar marca", description = "Actualiza los datos de una marca existente")
     public ResponseEntity<ApiResponse<MarcaResponse>> actualizar(
             @PathVariable("id") Integer id,
@@ -72,6 +78,7 @@ public class MarcaController {
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ADMIN')")
     @Operation(summary = "Borrado lógico de marca", description = "Desactiva una marca cambiando su estado a '0'")
     public ResponseEntity<ApiResponse<Void>> eliminar(@PathVariable("id") Integer id) {
         marcaService.cambiarEstado(id, "0");

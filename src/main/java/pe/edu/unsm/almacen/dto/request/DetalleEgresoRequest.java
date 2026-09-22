@@ -1,5 +1,6 @@
 package pe.edu.unsm.almacen.dto.request;
 
+import jakarta.validation.constraints.Digits;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import java.math.BigDecimal;
@@ -10,6 +11,7 @@ public record DetalleEgresoRequest(
 
         @NotNull(message = "La cantidad a despachar es obligatoria")
         @Positive(message = "La cantidad a despachar debe ser mayor a cero")
+        @Digits(integer = 10, fraction = 2, message = "La cantidad debe tener como máximo 2 decimales")
         BigDecimal cantidad
 ) {
 }

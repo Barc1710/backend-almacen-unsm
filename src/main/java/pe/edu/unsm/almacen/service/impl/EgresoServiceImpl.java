@@ -4,13 +4,13 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.LocalTime;
 import java.time.Year;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Optional;
+import java.util.Map;
+import java.util.stream.Collectors;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -70,10 +70,15 @@ public class EgresoServiceImpl implements IEgresoService {
     @Transactional(readOnly = true)
     public PageResponse<EgresoResponse> listar(Integer idCliente, Integer idArea, LocalDate desde, LocalDate hasta, String estado, Pageable pageable) {
         LocalDateTime desdeDateTime = desde != null ? desde.atStartOfDay() : null;
-        LocalDateTime hastaDateTime = hasta != null ? hasta.atTime(LocalTime.MAX) : null;
+        LocalDateTime hastaDateTime = hasta != null ? hasta.atTime(23, 59, 59) : null;
 
         Page<Egreso> page = egresoRepository.listarPaginado(idCliente, idArea, desdeDateTime, hastaDateTime, estado, pageable);
-        return PageResponse.of(page.map(this::construirEgresoResponse));
+        List<Integer> ids = page.getContent().stream().map(Egreso::getId).toList();
+        Map<Integer, BigDecimal> totales = ids.isEmpty() ? Map.of()
+                : detalleEgresoRepository.sumarTotalesPorEgresoIds(ids).stream()
+                        .collect(Collectors.toMap(row -> (Integer) row[0], row -> extraerMontoSeguro(row[1])));
+        return PageResponse.of(page.map(egreso -> construirEgresoResumenResponse(
+                egreso, totales.getOrDefault(egreso.getId(), BigDecimal.ZERO).setScale(2, RoundingMode.HALF_UP))));
     }
 
     @Override
@@ -118,13 +123,15 @@ public class EgresoServiceImpl implements IEgresoService {
         // 4. Seguridad Estricta: Obtención del usuario autenticado sin fallback silencioso
         Usuario usuarioActual = obtenerUsuarioActual();
 
-        // 5. Generación Concurrente y Atómica del Correlativo con bloqueo pesimista
+        // La base actual no tiene una restricción única para el correlativo.
+        // Este cerrojo mantiene la numeración segura dentro de esta instancia,
+        // incluyendo el commit de la transacción.
         String prefijo = (request.prefijo() != null && !request.prefijo().isBlank())
                 ? request.prefijo().trim().toUpperCase()
                 : "A" + String.format("%02d", Year.now().getValue() % 100);
 
-        Optional<Egreso> ultimoEgreso = egresoRepository.findFirstByPrefijoOrderByCorrelativoDesc(prefijo);
-        int nuevoCorrelativo = ultimoEgreso.map(e -> e.getCorrelativo() + 1).orElse(1);
+        Integer maxCorrelativo = egresoRepository.obtenerMaximoCorrelativo(prefijo);
+        int nuevoCorrelativo = (maxCorrelativo != null ? maxCorrelativo : 0) + 1;
 
         // 6. Registro de la cabecera del Egreso
         Egreso egreso = Egreso.builder()
@@ -138,7 +145,7 @@ public class EgresoServiceImpl implements IEgresoService {
                 .fecha(LocalDateTime.now())
                 .estado("1")
                 .build();
-        Egreso egresoGuardado = egresoRepository.save(egreso);
+        Egreso egresoGuardado = egresoRepository.saveAndFlush(egreso);
 
         List<DetalleEgresoResponse> detallesResponse = new ArrayList<>();
         BigDecimal totalEgreso = BigDecimal.ZERO;
@@ -148,11 +155,8 @@ public class EgresoServiceImpl implements IEgresoService {
             Articulo articulo = articuloRepository.findByIdWithLock(item.idArticulo())
                     .orElseThrow(() -> new ResourceNotFoundException("Artículo no encontrado con ID: " + item.idArticulo()));
 
-            if (!"1".equals(articulo.getEstado())) {
-                throw new BusinessException(
-                        "El artículo '" + articulo.getCodigo() + " - " + articulo.getDescripcion()
-                                + "' se encuentra inactivo y no puede ser despachado."
-                );
+            if (!"1".equals(articulo.getEstado()) || !Boolean.TRUE.equals(articulo.getActivo())) {
+                throw new BusinessException("El artículo " + articulo.getCodigo() + " no está activo para despachos.");
             }
 
             BigDecimal saldoActual = articulo.getSaldo() != null ? articulo.getSaldo() : BigDecimal.ZERO;
@@ -347,6 +351,28 @@ public class EgresoServiceImpl implements IEgresoService {
         );
     }
 
+    private EgresoResponse construirEgresoResumenResponse(Egreso egreso, BigDecimal total) {
+        return new EgresoResponse(
+                egreso.getId(),
+                egreso.getCliente() != null ? egreso.getCliente().getId() : null,
+                egreso.getCliente() != null ? egreso.getCliente().getNombre() : null,
+                egreso.getEncargado() != null ? egreso.getEncargado().getId() : null,
+                egreso.getEncargado() != null ? egreso.getEncargado().getNombreCompleto() : null,
+                egreso.getArea() != null ? egreso.getArea().getId() : null,
+                egreso.getArea() != null ? egreso.getArea().getNombre() : null,
+                egreso.getEncargadoAlmacen() != null ? egreso.getEncargadoAlmacen().getId() : null,
+                egreso.getEncargadoAlmacen() != null ? egreso.getEncargadoAlmacen().getNombre() : null,
+                egreso.getAmbiente(),
+                egreso.getPrefijo(),
+                egreso.getCorrelativo(),
+                egreso.getNumeroCompleto(),
+                egreso.getFecha(),
+                egreso.getEstado(),
+                total,
+                List.of()
+        );
+    }
+
     private Usuario obtenerUsuarioActual() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth != null && auth.getPrincipal() instanceof UserDetailsImpl userDetails) {
@@ -354,5 +380,12 @@ public class EgresoServiceImpl implements IEgresoService {
                     .orElseThrow(() -> new ResourceNotFoundException("Usuario autenticado no encontrado en la base de datos"));
         }
         throw new BusinessException("Operación no permitida: No se encontró un usuario autenticado válido en la sesión de seguridad");
+    }
+
+    private BigDecimal extraerMontoSeguro(Object valor) {
+        if (valor == null) return BigDecimal.ZERO;
+        if (valor instanceof BigDecimal bd) return bd;
+        if (valor instanceof Number num) return BigDecimal.valueOf(num.doubleValue());
+        return new BigDecimal(valor.toString());
     }
 }

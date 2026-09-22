@@ -8,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -32,6 +33,7 @@ public class FamiliaController {
     private final IFamiliaService familiaService;
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ADMIN', 'OPERADOR')")
     @Operation(summary = "Listar familias paginadas", description = "Retorna un listado paginado con filtro de búsqueda opcional por nombre o inicial")
     public ResponseEntity<ApiResponse<PageResponse<FamiliaResponse>>> listar(
             @RequestParam(name = "filtro", required = false) String filtro,
@@ -41,6 +43,7 @@ public class FamiliaController {
     }
 
     @GetMapping("/activos")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ADMIN', 'OPERADOR')")
     @Operation(summary = "Listar familias activas", description = "Retorna todas las familias activas para combos y selección")
     public ResponseEntity<ApiResponse<List<FamiliaResponse>>> listarActivos() {
         List<FamiliaResponse> response = familiaService.listarActivos();
@@ -48,6 +51,7 @@ public class FamiliaController {
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ADMIN', 'OPERADOR')")
     @Operation(summary = "Obtener familia por ID", description = "Retorna el detalle de una familia específica")
     public ResponseEntity<ApiResponse<FamiliaResponse>> obtenerPorId(@PathVariable("id") Integer id) {
         FamiliaResponse response = familiaService.obtenerPorId(id);
@@ -55,6 +59,7 @@ public class FamiliaController {
     }
 
     @PostMapping
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ADMIN', 'OPERADOR')")
     @Operation(summary = "Crear nueva familia", description = "Registra una nueva familia e inicializa su correlativo inicial en 1")
     public ResponseEntity<ApiResponse<FamiliaResponse>> crear(@Valid @RequestBody FamiliaRequest request) {
         FamiliaResponse response = familiaService.crear(request);
@@ -63,6 +68,7 @@ public class FamiliaController {
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ADMIN', 'OPERADOR')")
     @Operation(summary = "Actualizar familia", description = "Actualiza los datos de una familia existente")
     public ResponseEntity<ApiResponse<FamiliaResponse>> actualizar(
             @PathVariable("id") Integer id,
@@ -72,6 +78,7 @@ public class FamiliaController {
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ADMIN')")
     @Operation(summary = "Borrado lógico de familia", description = "Desactiva una familia cambiando su estado a '0'")
     public ResponseEntity<ApiResponse<Void>> eliminar(@PathVariable("id") Integer id) {
         familiaService.cambiarEstado(id, "0");

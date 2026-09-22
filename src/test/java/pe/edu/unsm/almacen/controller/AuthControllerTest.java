@@ -15,7 +15,6 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import pe.edu.unsm.almacen.dto.response.JwtResponse;
-import pe.edu.unsm.almacen.exception.AuthExceptionHandler;
 import pe.edu.unsm.almacen.exception.GlobalExceptionHandler;
 
 class AuthControllerTest {
@@ -33,7 +32,7 @@ class AuthControllerTest {
             return new JwtResponse("test-token", request.usuario(), "Ana Perez", "ADMIN", true);
         });
         mvc = MockMvcBuilders.standaloneSetup(controller)
-                .setControllerAdvice(new GlobalExceptionHandler(), new AuthExceptionHandler()).build();
+                .setControllerAdvice(new GlobalExceptionHandler()).build();
     }
 
     @ParameterizedTest

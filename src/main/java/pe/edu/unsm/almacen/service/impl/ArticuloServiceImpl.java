@@ -19,6 +19,7 @@ import pe.edu.unsm.almacen.entity.Articulo;
 import pe.edu.unsm.almacen.entity.Familia;
 import pe.edu.unsm.almacen.entity.Marca;
 import pe.edu.unsm.almacen.entity.Ubicacion;
+import pe.edu.unsm.almacen.exception.BusinessException;
 import pe.edu.unsm.almacen.exception.DuplicateResourceException;
 import pe.edu.unsm.almacen.exception.ResourceNotFoundException;
 import pe.edu.unsm.almacen.repository.ArticuloRepository;
@@ -112,6 +113,10 @@ public class ArticuloServiceImpl implements IArticuloService {
         Articulo articulo = articuloRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Artículo no encontrado con ID: " + id));
 
+        if (!"1".equals(articulo.getEstado())) {
+            throw new BusinessException("No se pueden modificar datos de un artículo dado de baja.");
+        }
+
         Familia familia = familiaRepository.findById(request.idFamilia())
                 .orElseThrow(() -> new ResourceNotFoundException("Familia no encontrada con ID: " + request.idFamilia()));
 
@@ -121,16 +126,23 @@ public class ArticuloServiceImpl implements IArticuloService {
         Ubicacion ubicacion = ubicacionRepository.findById(request.idUbicacion())
                 .orElseThrow(() -> new ResourceNotFoundException("Ubicación no encontrada con ID: " + request.idUbicacion()));
 
-        articulo.setDescripcion(request.descripcion().trim());
-        articulo.setFamilia(familia);
-        articulo.setMarca(marca);
-        articulo.setUbicacion(ubicacion);
-        articulo.setCantidadMinima(request.cantidadMinima());
-        articulo.setPrecio(request.precio());
-        articulo.setDetalle(request.detalle() != null ? request.detalle().trim() : "");
+        String descripcion = request.descripcion().trim();
+        String detalle = request.detalle() != null ? request.detalle().trim() : "";
 
-        Articulo actualizado = articuloRepository.save(articulo);
-        log.info("Artículo actualizado con éxito: ID={}", actualizado.getId());
+        articuloRepository.actualizarDatosMaestros(
+                id,
+                descripcion,
+                familia,
+                marca,
+                ubicacion,
+                request.cantidadMinima(),
+                request.precio(),
+                detalle
+        );
+        log.info("Artículo actualizado con éxito mediante modificación atómica: ID={}", id);
+
+        Articulo actualizado = articuloRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Artículo no encontrado con ID: " + id));
 
         return mapToResponse(actualizado);
     }
@@ -138,12 +150,12 @@ public class ArticuloServiceImpl implements IArticuloService {
     @Override
     @Transactional
     public void cambiarEstado(Integer id, String nuevoEstado) {
-        Articulo articulo = articuloRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Artículo no encontrado con ID: " + id));
+        if (!articuloRepository.existsById(id)) {
+            throw new ResourceNotFoundException("Artículo no encontrado con ID: " + id);
+        }
 
-        articulo.setEstado(nuevoEstado);
-        articuloRepository.save(articulo);
-        log.info("Estado de artículo ID={} cambiado a '{}'", id, nuevoEstado);
+        articuloRepository.actualizarEstado(id, nuevoEstado);
+        log.info("Estado de artículo ID={} cambiado a '{}' mediante modificación atómica", id, nuevoEstado);
     }
 
     @Override
@@ -153,9 +165,11 @@ public class ArticuloServiceImpl implements IArticuloService {
                 .orElseThrow(() -> new ResourceNotFoundException("Artículo no encontrado con ID: " + id));
 
         boolean nuevoActivo = !Boolean.TRUE.equals(articulo.getActivo());
-        articulo.setActivo(nuevoActivo);
-        Articulo actualizado = articuloRepository.save(articulo);
-        log.info("Operatividad de artículo ID={} modificada a activo={}", id, nuevoActivo);
+        articuloRepository.actualizarActivo(id, nuevoActivo);
+        log.info("Operatividad de artículo ID={} modificada a activo={} mediante modificación atómica", id, nuevoActivo);
+
+        Articulo actualizado = articuloRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Artículo no encontrado con ID: " + id));
 
         return mapToResponse(actualizado);
     }

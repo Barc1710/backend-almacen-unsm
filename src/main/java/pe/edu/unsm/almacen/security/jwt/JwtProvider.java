@@ -24,7 +24,7 @@ public class JwtProvider {
     private final long jwtExpirationMs;
 
     public JwtProvider(@Value("${jwt.secret}") String jwtSecret,
-                       @Value("${jwt.expiration:86400000}") long jwtExpirationMs) {
+                       @Value("${jwt.expiration-ms:${jwt.expiration:86400000}}") long jwtExpirationMs) {
         if (jwtSecret == null || jwtSecret.isBlank()) {
             throw new IllegalArgumentException("jwt.secret es obligatorio y debe estar codificado en Base64");
         }
