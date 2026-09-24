@@ -8,7 +8,6 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -28,7 +27,6 @@ import pe.edu.unsm.almacen.service.IKardexService;
 
 @Service
 @RequiredArgsConstructor
-@Slf4j
 public class KardexServiceImpl implements IKardexService {
 
     private final KardexMovimientoRepository kardexMovimientoRepository;
@@ -42,18 +40,13 @@ public class KardexServiceImpl implements IKardexService {
             LocalDate desde,
             LocalDate hasta,
             Pageable pageable) {
-        log.info("Consultando kardex contable para artículo ID: {}", idArticulo);
-
-        // 1. Validar existencia del artículo
         if (!articuloRepository.existsById(idArticulo)) {
             throw new ResourceNotFoundException("Artículo no encontrado con ID: " + idArticulo);
         }
 
-        // 2. Normalización segura de fechas (evitando redondeo de nanosegundos en MySQL 8.4)
         LocalDateTime desdeDateTime = desde != null ? desde.atStartOfDay() : null;
         LocalDateTime hastaDateTime = hasta != null ? hasta.atTime(23, 59, 59) : null;
 
-        // 3. Diferenciación de ordenamiento: Lectura contable cronológica natural (ASC) con desempate por id
         Pageable pageableAjustado = pageable;
         if (pageable.getSort().isUnsorted()) {
             pageableAjustado = PageRequest.of(
@@ -86,13 +79,9 @@ public class KardexServiceImpl implements IKardexService {
             LocalDate desde,
             LocalDate hasta,
             Pageable pageable) {
-        log.info("Consultando historial general de auditoría de movimientos de kardex");
-
-        // 1. Normalización segura de fechas
         LocalDateTime desdeDateTime = desde != null ? desde.atStartOfDay() : null;
         LocalDateTime hastaDateTime = hasta != null ? hasta.atTime(23, 59, 59) : null;
 
-        // 2. Diferenciación de ordenamiento: Auditoría más reciente primero (DESC)
         Pageable pageableAjustado = pageable;
         if (pageable.getSort().isUnsorted()) {
             pageableAjustado = PageRequest.of(
@@ -118,7 +107,10 @@ public class KardexServiceImpl implements IKardexService {
             return Map.of();
         }
         Set<Integer> egresoIds = movimientos.stream()
-                .filter(k -> (k.getTipoMovimiento() == TipoMovimiento.EGRESO || k.getTipoMovimiento() == TipoMovimiento.REVERSO_EGRESO)
+                .filter(k -> (k.getTipoMovimiento() == TipoMovimiento.EGRESO
+                        || k.getTipoMovimiento() == TipoMovimiento.REVERSO_EGRESO
+                        || k.getTipoMovimiento() == TipoMovimiento.BAJA_DETERIORO
+                        || k.getTipoMovimiento() == TipoMovimiento.BAJA_VENCIMIENTO)
                         && k.getDocumentoId() != null)
                 .map(KardexMovimiento::getDocumentoId)
                 .collect(Collectors.toSet());
@@ -147,7 +139,10 @@ public class KardexServiceImpl implements IKardexService {
 
         String documentoReferencia = "-";
         if (k.getDocumentoTipo() != null && k.getDocumentoId() != null) {
-            if (k.getTipoMovimiento() == TipoMovimiento.EGRESO || k.getTipoMovimiento() == TipoMovimiento.REVERSO_EGRESO) {
+            if (k.getTipoMovimiento() == TipoMovimiento.EGRESO
+                    || k.getTipoMovimiento() == TipoMovimiento.REVERSO_EGRESO
+                    || k.getTipoMovimiento() == TipoMovimiento.BAJA_DETERIORO
+                    || k.getTipoMovimiento() == TipoMovimiento.BAJA_VENCIMIENTO) {
                 Egreso e = egresosMap != null ? egresosMap.get(k.getDocumentoId()) : null;
                 if (e == null && egresoRepository != null) {
                     e = egresoRepository.findById(k.getDocumentoId()).orElse(null);

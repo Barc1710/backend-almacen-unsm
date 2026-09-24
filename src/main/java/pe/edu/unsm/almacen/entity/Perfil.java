@@ -6,12 +6,14 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import java.sql.Types;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.hibernate.annotations.ColumnDefault;
+import org.hibernate.annotations.JdbcTypeCode;
 
 @Entity
 @Table(name = "perfil")
@@ -32,14 +34,14 @@ public class Perfil {
 
     @Column(name = "estadoperfil", nullable = false)
     @ColumnDefault("1")
-    private Byte estadoPerfil;
+    @JdbcTypeCode(Types.TINYINT)
+    private Integer estadoPerfil;
 
     public Integer getEstado() {
-        return estadoPerfil != null ? estadoPerfil.intValue() : null;
+        return estadoPerfil;
     }
 
     public void setEstado(Integer estado) {
-        this.estadoPerfil = estado != null ? estado.byteValue() : null;
+        this.estadoPerfil = estado;
     }
 }
-

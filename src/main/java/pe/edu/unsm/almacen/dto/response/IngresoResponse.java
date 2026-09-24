@@ -9,6 +9,7 @@ public record IngresoResponse(
         Integer idProveedor,
         String razonSocialProveedor,
         String rucProveedor,
+        String numeroOrdenCompra,
         String descripcion,
         LocalDateTime fecha,
         String estado,

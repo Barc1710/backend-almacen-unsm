@@ -21,31 +21,31 @@ import pe.edu.unsm.almacen.service.IKardexService;
 @RestController
 @RequestMapping("/kardex")
 @RequiredArgsConstructor
-@Tag(name = "Kardex", description = "Auditoría de movimientos de almacén e historial de Kardex físico/valorizado")
+@Tag(name = "Kardex")
 public class KardexController {
 
     private final IKardexService kardexService;
 
     @GetMapping({"/articulo/{idArticulo}", "/articulos/{idArticulo}"})
-    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ADMIN', 'OPERADOR')")
-    @Operation(summary = "Consultar Kardex de un artículo", description = "Retorna el historial cronológico paginado de movimientos de un artículo con filtros opcionales de fecha")
+    @PreAuthorize("@moduloAccess.canRead(authentication, 'KARDEX', 'ARTICULOS')")
+    @Operation(summary = "Consultar Kardex de un artículo")
     public ResponseEntity<ApiResponse<PageResponse<KardexMovimientoResponse>>> listarPorArticulo(
             @PathVariable("idArticulo") Integer idArticulo,
             @RequestParam(name = "desde", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate desde,
             @RequestParam(name = "hasta", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate hasta,
             Pageable pageable) {
         PageResponse<KardexMovimientoResponse> response = kardexService.listarPorArticulo(idArticulo, desde, hasta, pageable);
-        return ResponseEntity.ok(new ApiResponse<>(true, "Movimientos de kardex recuperados exitosamente para el artículo", response));
+        return ResponseEntity.ok(new ApiResponse<>(true, "Kardex del artículo", response));
     }
 
     @GetMapping("/general")
-    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ADMIN')")
-    @Operation(summary = "Consultar historial general de auditoría de Kardex", description = "Retorna el historial paginado de todos los movimientos de almacén con filtros opcionales de rango de fechas")
+    @PreAuthorize("@moduloAccess.hasAccess(authentication, 'KARDEX')")
+    @Operation(summary = "Consultar movimientos de Kardex")
     public ResponseEntity<ApiResponse<PageResponse<KardexMovimientoResponse>>> listarGeneral(
             @RequestParam(name = "desde", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate desde,
             @RequestParam(name = "hasta", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate hasta,
             Pageable pageable) {
         PageResponse<KardexMovimientoResponse> response = kardexService.listarGeneral(desde, hasta, pageable);
-        return ResponseEntity.ok(new ApiResponse<>(true, "Historial general de movimientos de kardex recuperado exitosamente", response));
+        return ResponseEntity.ok(new ApiResponse<>(true, "Movimientos listados", response));
     }
 }

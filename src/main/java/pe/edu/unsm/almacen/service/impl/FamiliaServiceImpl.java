@@ -9,10 +9,8 @@ import org.springframework.transaction.annotation.Transactional;
 import pe.edu.unsm.almacen.dto.common.PageResponse;
 import pe.edu.unsm.almacen.dto.request.FamiliaRequest;
 import pe.edu.unsm.almacen.dto.response.FamiliaResponse;
-import pe.edu.unsm.almacen.entity.CorrelativoFamilia;
 import pe.edu.unsm.almacen.entity.Familia;
 import pe.edu.unsm.almacen.exception.ResourceNotFoundException;
-import pe.edu.unsm.almacen.repository.CorrelativoFamiliaRepository;
 import pe.edu.unsm.almacen.repository.FamiliaRepository;
 import pe.edu.unsm.almacen.service.IFamiliaService;
 
@@ -21,7 +19,6 @@ import pe.edu.unsm.almacen.service.IFamiliaService;
 public class FamiliaServiceImpl implements IFamiliaService {
 
     private final FamiliaRepository familiaRepository;
-    private final CorrelativoFamiliaRepository correlativoFamiliaRepository;
 
     @Override
     @Transactional(readOnly = true)
@@ -57,12 +54,6 @@ public class FamiliaServiceImpl implements IFamiliaService {
                 .estado("1")
                 .build();
         Familia familiaGuardada = familiaRepository.save(familia);
-
-        CorrelativoFamilia correlativoFamilia = CorrelativoFamilia.builder()
-                .familia(familiaGuardada)
-                .correlativo(1)
-                .build();
-        correlativoFamiliaRepository.save(correlativoFamilia);
 
         return mapToResponse(familiaGuardada);
     }

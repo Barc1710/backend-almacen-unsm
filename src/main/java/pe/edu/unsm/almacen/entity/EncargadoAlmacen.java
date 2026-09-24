@@ -33,4 +33,12 @@ public class EncargadoAlmacen {
     @Column(name = "estado", nullable = false, length = 1, columnDefinition = "char(1)")
     @ColumnDefault("'1'")
     private String estado;
+
+    @Column(name = "es_titular", nullable = false)
+    @ColumnDefault("0")
+    private Boolean esTitular;
+
+    @Column(name = "cargo", nullable = true, length = 100)
+    @ColumnDefault("'Encargado de Almacén'")
+    private String cargo;
 }

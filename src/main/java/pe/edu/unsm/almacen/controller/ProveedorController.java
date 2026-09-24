@@ -27,61 +27,61 @@ import pe.edu.unsm.almacen.service.IProveedorService;
 @RestController
 @RequestMapping("/proveedores")
 @RequiredArgsConstructor
-@Tag(name = "Proveedores", description = "Gestión del catálogo de proveedores comerciales")
+@Tag(name = "Proveedores")
 public class ProveedorController {
 
     private final IProveedorService proveedorService;
 
     @GetMapping
-    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ADMIN', 'OPERADOR')")
-    @Operation(summary = "Listar proveedores paginados", description = "Retorna un listado paginado con filtro de búsqueda opcional por RUC, razón social o contacto")
+    @PreAuthorize("@moduloAccess.canRead(authentication, 'PROVEEDORES', 'INGRESOS')")
+    @Operation(summary = "Listar proveedores paginados")
     public ResponseEntity<ApiResponse<PageResponse<ProveedorResponse>>> listar(
             @RequestParam(name = "filtro", required = false) String filtro,
             Pageable pageable) {
         PageResponse<ProveedorResponse> response = proveedorService.listarPaginado(filtro, pageable);
-        return ResponseEntity.ok(new ApiResponse<>(true, "Proveedores recuperados exitosamente", response));
+        return ResponseEntity.ok(new ApiResponse<>(true, "Proveedores listados", response));
     }
 
     @GetMapping("/activos")
-    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ADMIN', 'OPERADOR')")
-    @Operation(summary = "Listar proveedores activos", description = "Retorna todos los proveedores activos para combos y selección")
+    @PreAuthorize("@moduloAccess.canRead(authentication, 'PROVEEDORES', 'INGRESOS')")
+    @Operation(summary = "Listar proveedores activos")
     public ResponseEntity<ApiResponse<List<ProveedorResponse>>> listarActivos() {
         List<ProveedorResponse> response = proveedorService.listarActivos();
-        return ResponseEntity.ok(new ApiResponse<>(true, "Proveedores activos recuperados exitosamente", response));
+        return ResponseEntity.ok(new ApiResponse<>(true, "Proveedores activos listados", response));
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ADMIN', 'OPERADOR')")
-    @Operation(summary = "Obtener proveedor por ID", description = "Retorna el detalle de un proveedor específico")
+    @PreAuthorize("@moduloAccess.canRead(authentication, 'PROVEEDORES', 'INGRESOS')")
+    @Operation(summary = "Obtener proveedor por ID")
     public ResponseEntity<ApiResponse<ProveedorResponse>> obtenerPorId(@PathVariable("id") Integer id) {
         ProveedorResponse response = proveedorService.obtenerPorId(id);
-        return ResponseEntity.ok(new ApiResponse<>(true, "Proveedor encontrado exitosamente", response));
+        return ResponseEntity.ok(new ApiResponse<>(true, "Proveedor obtenido", response));
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ADMIN', 'OPERADOR')")
-    @Operation(summary = "Crear nuevo proveedor", description = "Registra un nuevo proveedor con validación estricta de RUC")
+    @PreAuthorize("@moduloAccess.hasAccess(authentication, 'PROVEEDORES')")
+    @Operation(summary = "Crear proveedor")
     public ResponseEntity<ApiResponse<ProveedorResponse>> crear(@Valid @RequestBody ProveedorRequest request) {
         ProveedorResponse response = proveedorService.crear(request);
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(new ApiResponse<>(true, "Proveedor creado exitosamente", response));
+                .body(new ApiResponse<>(true, "Proveedor creado", response));
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ADMIN', 'OPERADOR')")
-    @Operation(summary = "Actualizar proveedor", description = "Actualiza los datos de un proveedor existente")
+    @PreAuthorize("@moduloAccess.hasAccess(authentication, 'PROVEEDORES')")
+    @Operation(summary = "Actualizar proveedor")
     public ResponseEntity<ApiResponse<ProveedorResponse>> actualizar(
             @PathVariable("id") Integer id,
             @Valid @RequestBody ProveedorRequest request) {
         ProveedorResponse response = proveedorService.actualizar(id, request);
-        return ResponseEntity.ok(new ApiResponse<>(true, "Proveedor actualizado exitosamente", response));
+        return ResponseEntity.ok(new ApiResponse<>(true, "Proveedor actualizado", response));
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ADMIN')")
-    @Operation(summary = "Borrado lógico de proveedor", description = "Desactiva un proveedor cambiando su estado a '0'")
+    @PreAuthorize("hasRole('ADMINISTRADOR') and @moduloAccess.hasAccess(authentication, 'PROVEEDORES')")
+    @Operation(summary = "Desactivar proveedor")
     public ResponseEntity<ApiResponse<Void>> eliminar(@PathVariable("id") Integer id) {
         proveedorService.cambiarEstado(id, "0");
-        return ResponseEntity.ok(new ApiResponse<>(true, "Proveedor desactivado exitosamente", null));
+        return ResponseEntity.ok(new ApiResponse<>(true, "Proveedor desactivado", null));
     }
 }

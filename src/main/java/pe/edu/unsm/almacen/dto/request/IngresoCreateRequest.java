@@ -10,6 +10,9 @@ public record IngresoCreateRequest(
         @NotNull(message = "El proveedor es obligatorio")
         Integer idProveedor,
 
+        @Size(max = 50, message = "El número de orden de compra no debe superar los 50 caracteres")
+        String numeroOrdenCompra,
+
         @Size(max = 255, message = "La descripción no debe superar los 255 caracteres")
         String descripcion,
 

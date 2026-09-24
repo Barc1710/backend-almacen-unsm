@@ -16,6 +16,8 @@ public record ArticuloCreateRequest(
         @Size(max = 255, message = "La descripción no debe exceder 255 caracteres")
         String descripcion,
 
+        Integer idUnidadMedida,
+
         @NotNull(message = "El ID de familia es obligatorio")
         Integer idFamilia,
 

@@ -26,7 +26,7 @@ public class GlobalExceptionHandler {
         log.warn("Acceso denegado: {}", ex.getMessage());
         String mensaje = (ex.getMessage() != null && !ex.getMessage().isBlank() && !ex.getMessage().equalsIgnoreCase("Access Denied"))
                 ? ex.getMessage()
-                : "Acceso denegado: no cuenta con los privilegios requeridos para realizar esta acción.";
+                : "Acceso denegado.";
         return ResponseEntity.status(HttpStatus.FORBIDDEN)
                 .body(new ApiResponse<>(false, mensaje, null));
     }
@@ -42,7 +42,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiResponse<Void>> handleDisabled(DisabledException ex) {
         log.warn("Cuenta inactiva: {}", ex.getMessage());
         return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                .body(new ApiResponse<>(false, "El usuario se encuentra inactivo en el sistema", null));
+                .body(new ApiResponse<>(false, "Usuario inactivo.", null));
     }
 
     @ExceptionHandler(UsernameNotFoundException.class)
@@ -71,50 +71,50 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(DuplicateResourceException.class)
     public ResponseEntity<ApiResponse<Void>> handleDuplicateResource(DuplicateResourceException ex) {
-        log.warn("Conflicto de recurso duplicado: {}", ex.getMessage());
+        log.warn("Registro duplicado: {}", ex.getMessage());
         return ResponseEntity.status(HttpStatus.CONFLICT)
                 .body(new ApiResponse<>(false, ex.getMessage(), null));
     }
 
     @ExceptionHandler(BusinessException.class)
     public ResponseEntity<ApiResponse<Void>> handleBusinessException(BusinessException ex) {
-        log.warn("Regla de negocio no satisfecha: {}", ex.getMessage());
+        log.warn("Operación inválida: {}", ex.getMessage());
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(new ApiResponse<>(false, ex.getMessage(), null));
     }
 
     @ExceptionHandler(StockInsuficienteException.class)
     public ResponseEntity<ApiResponse<Void>> handleStockInsuficiente(StockInsuficienteException ex) {
-        log.warn("Conflicto de stock insuficiente: {}", ex.getMessage());
+        log.warn("Stock insuficiente: {}", ex.getMessage());
         return ResponseEntity.status(HttpStatus.CONFLICT)
                 .body(new ApiResponse<>(false, ex.getMessage(), null));
     }
 
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<ApiResponse<Void>> handleDataIntegrityViolation(DataIntegrityViolationException ex) {
-        log.warn("Violación de integridad relacional: {}", ex.getMessage());
+        log.warn("Error de integridad: {}", ex.getMessage());
         return ResponseEntity.status(HttpStatus.CONFLICT)
-                .body(ApiResponse.error("Conflicto de integridad de datos: el registro ya existe o una clave foránea requerida no es válida"));
+                .body(ApiResponse.error("Registro duplicado o referencia inválida."));
     }
 
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<ApiResponse<Void>> handleHttpMessageNotReadable(HttpMessageNotReadableException ex) {
-        log.warn("Error de lectura HTTP/JSON: {}", ex.getMessage());
+        log.warn("JSON inválido: {}", ex.getMessage());
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(ApiResponse.error("El cuerpo de la solicitud debe ser un JSON válido"));
+                .body(ApiResponse.error("JSON inválido."));
     }
 
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
     public ResponseEntity<ApiResponse<Void>> handleMethodArgumentTypeMismatch(MethodArgumentTypeMismatchException ex) {
-        log.warn("Tipo de argumento inválido: {}", ex.getMessage());
+        log.warn("Parámetro inválido: {}", ex.getMessage());
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(ApiResponse.error("Uno de los parámetros de la solicitud tiene un tipo de dato inválido"));
+                .body(ApiResponse.error("Parámetro inválido."));
     }
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<Void>> handleGenericException(Exception ex) {
-        log.error("Error interno del servidor: ", ex);
+        log.error("Error interno", ex);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(new ApiResponse<>(false, "Ocurrió un error interno en el servidor", null));
+                .body(new ApiResponse<>(false, "Error interno.", null));
     }
 }

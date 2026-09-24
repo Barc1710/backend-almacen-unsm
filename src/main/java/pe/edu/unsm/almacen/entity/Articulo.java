@@ -42,6 +42,11 @@ public class Articulo {
     @Column(name = "descripcion", nullable = false, length = 255)
     private String descripcion;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "id_unidad_medida", referencedColumnName = "id", nullable = true,
+            foreignKey = @ForeignKey(name = "fk_articulo_unidad_medida"))
+    private UnidadMedida unidadMedida;
+
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "id_familia", referencedColumnName = "id", nullable = false,
             foreignKey = @ForeignKey(name = "fk_articulo_familia"))

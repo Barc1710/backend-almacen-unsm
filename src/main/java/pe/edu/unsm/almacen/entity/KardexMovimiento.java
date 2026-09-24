@@ -44,7 +44,7 @@ public class KardexMovimiento {
     private Articulo articulo;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "tipo_movimiento", nullable = false, columnDefinition = "enum('SALDO_INICIAL', 'INGRESO', 'EGRESO', 'REVERSO_EGRESO', 'AJUSTE')")
+    @Column(name = "tipo_movimiento", nullable = false, columnDefinition = "enum('SALDO_INICIAL', 'INGRESO', 'EGRESO', 'REVERSO_EGRESO', 'AJUSTE', 'BAJA_DETERIORO', 'BAJA_VENCIMIENTO')")
     private TipoMovimiento tipoMovimiento;
 
     @Column(name = "documento_tipo", nullable = false, length = 20)

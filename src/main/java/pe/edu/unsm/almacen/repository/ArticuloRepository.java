@@ -16,10 +16,11 @@ import pe.edu.unsm.almacen.entity.Articulo;
 import pe.edu.unsm.almacen.entity.Familia;
 import pe.edu.unsm.almacen.entity.Marca;
 import pe.edu.unsm.almacen.entity.Ubicacion;
+import pe.edu.unsm.almacen.entity.UnidadMedida;
 
 public interface ArticuloRepository extends JpaRepository<Articulo, Integer> {
 
-    @EntityGraph(attributePaths = {"familia", "marca", "ubicacion"})
+    @EntityGraph(attributePaths = {"familia", "marca", "ubicacion", "unidadMedida"})
     @Query(value = "SELECT a FROM Articulo a WHERE " +
            "(:filtro IS NULL OR :filtro = '' OR LOWER(a.codigo) LIKE LOWER(CONCAT('%', :filtro, '%')) OR LOWER(a.descripcion) LIKE LOWER(CONCAT('%', :filtro, '%'))) AND " +
            "(:codigo IS NULL OR :codigo = '' OR LOWER(a.codigo) LIKE LOWER(CONCAT('%', :codigo, '%'))) AND " +
@@ -41,28 +42,35 @@ public interface ArticuloRepository extends JpaRepository<Articulo, Integer> {
             Pageable pageable
     );
 
-    @EntityGraph(attributePaths = {"familia", "marca", "ubicacion"})
+    @EntityGraph(attributePaths = {"familia", "marca", "ubicacion", "unidadMedida"})
     @Query("SELECT a FROM Articulo a WHERE a.estado = '1' AND a.activo = true AND " +
+           "(:soloConStock = false OR a.saldo > 0) AND " +
            "(:termino IS NULL OR :termino = '' OR LOWER(a.codigo) LIKE LOWER(CONCAT('%', :termino, '%')) OR LOWER(a.descripcion) LIKE LOWER(CONCAT('%', :termino, '%'))) " +
            "ORDER BY a.descripcion ASC")
-    List<Articulo> buscarPredictivo(@Param("termino") String termino, Pageable pageable);
+    List<Articulo> buscarPredictivo(
+            @Param("termino") String termino,
+            @Param("soloConStock") boolean soloConStock,
+            Pageable pageable
+    );
 
-    @EntityGraph(attributePaths = {"familia", "marca", "ubicacion"})
+    @EntityGraph(attributePaths = {"familia", "marca", "ubicacion", "unidadMedida"})
     @Override
     Optional<Articulo> findById(Integer id);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @EntityGraph(attributePaths = {"familia", "marca", "ubicacion", "unidadMedida"})
     @Query("SELECT a FROM Articulo a WHERE a.id = :id")
     Optional<Articulo> findByIdWithLock(@Param("id") Integer id);
 
     boolean existsByCodigo(String codigo);
 
     @Modifying(flushAutomatically = true, clearAutomatically = true)
-    @Query("UPDATE Articulo a SET a.descripcion = :desc, a.familia = :familia, a.marca = :marca, a.ubicacion = :ubicacion, " +
+    @Query("UPDATE Articulo a SET a.descripcion = :desc, a.unidadMedida = :unidadMedida, a.familia = :familia, a.marca = :marca, a.ubicacion = :ubicacion, " +
            "a.cantidadMinima = :min, a.precio = :precio, a.detalle = :det WHERE a.id = :id")
     int actualizarDatosMaestros(
             @Param("id") Integer id,
             @Param("desc") String desc,
+            @Param("unidadMedida") UnidadMedida unidadMedida,
             @Param("familia") Familia familia,
             @Param("marca") Marca marca,
             @Param("ubicacion") Ubicacion ubicacion,

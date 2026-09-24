@@ -2,6 +2,8 @@ package pe.edu.unsm.almacen.entity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.ForeignKey;
 import jakarta.persistence.GeneratedValue;
@@ -40,10 +42,13 @@ public class Egreso {
             foreignKey = @ForeignKey(name = "fk_egreso_cliente"))
     private Cliente cliente;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "id_encargado", referencedColumnName = "id", nullable = false,
+    @ManyToOne(fetch = FetchType.LAZY, optional = true)
+    @JoinColumn(name = "id_encargado", referencedColumnName = "id", nullable = true,
             foreignKey = @ForeignKey(name = "fk_egreso_encargado"))
     private Encargado encargado;
+
+    @Column(name = "nombre_encargado_libre", nullable = true, length = 150)
+    private String nombreEncargadoLibre;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "id_area", referencedColumnName = "id", nullable = false,
@@ -55,6 +60,11 @@ public class Egreso {
             foreignKey = @ForeignKey(name = "fk_egreso_enc_almacen"))
     private EncargadoAlmacen encargadoAlmacen;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "id_usuario", referencedColumnName = "id_usuario",
+            foreignKey = @ForeignKey(name = "fk_egreso_usuario"))
+    private Usuario usuario;
+
     @Column(name = "ambiente", nullable = true, length = 100)
     private String ambiente;
 
@@ -65,6 +75,11 @@ public class Egreso {
     @Column(name = "correlativo", nullable = false)
     @ColumnDefault("0")
     private Integer correlativo;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "tipo_egreso", nullable = false, length = 30)
+    @ColumnDefault("'DESPACHO_ORDINARIO'")
+    private TipoEgreso tipoEgreso;
 
     @Column(name = "fecha", nullable = false, columnDefinition = "datetime")
     @ColumnDefault("CURRENT_TIMESTAMP")
@@ -87,6 +102,9 @@ public class Egreso {
         }
         if (this.correlativo == null) {
             this.correlativo = 0;
+        }
+        if (this.tipoEgreso == null) {
+            this.tipoEgreso = TipoEgreso.DESPACHO_ORDINARIO;
         }
     }
 

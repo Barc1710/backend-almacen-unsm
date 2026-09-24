@@ -27,61 +27,61 @@ import pe.edu.unsm.almacen.service.IFamiliaService;
 @RestController
 @RequestMapping("/familias")
 @RequiredArgsConstructor
-@Tag(name = "Familias", description = "Gestión del catálogo de familias de artículos y correlativos")
+@Tag(name = "Familias")
 public class FamiliaController {
 
     private final IFamiliaService familiaService;
 
     @GetMapping
-    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ADMIN', 'OPERADOR')")
-    @Operation(summary = "Listar familias paginadas", description = "Retorna un listado paginado con filtro de búsqueda opcional por nombre o inicial")
+    @PreAuthorize("@moduloAccess.canRead(authentication, 'FAMILIAS', 'ARTICULOS')")
+    @Operation(summary = "Listar familias paginadas")
     public ResponseEntity<ApiResponse<PageResponse<FamiliaResponse>>> listar(
             @RequestParam(name = "filtro", required = false) String filtro,
             Pageable pageable) {
         PageResponse<FamiliaResponse> response = familiaService.listarPaginado(filtro, pageable);
-        return ResponseEntity.ok(new ApiResponse<>(true, "Familias recuperadas exitosamente", response));
+        return ResponseEntity.ok(new ApiResponse<>(true, "Familias listadas", response));
     }
 
     @GetMapping("/activos")
-    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ADMIN', 'OPERADOR')")
-    @Operation(summary = "Listar familias activas", description = "Retorna todas las familias activas para combos y selección")
+    @PreAuthorize("@moduloAccess.canRead(authentication, 'FAMILIAS', 'ARTICULOS')")
+    @Operation(summary = "Listar familias activas")
     public ResponseEntity<ApiResponse<List<FamiliaResponse>>> listarActivos() {
         List<FamiliaResponse> response = familiaService.listarActivos();
-        return ResponseEntity.ok(new ApiResponse<>(true, "Familias activas recuperadas exitosamente", response));
+        return ResponseEntity.ok(new ApiResponse<>(true, "Familias activas listadas", response));
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ADMIN', 'OPERADOR')")
-    @Operation(summary = "Obtener familia por ID", description = "Retorna el detalle de una familia específica")
+    @PreAuthorize("@moduloAccess.canRead(authentication, 'FAMILIAS', 'ARTICULOS')")
+    @Operation(summary = "Obtener familia por ID")
     public ResponseEntity<ApiResponse<FamiliaResponse>> obtenerPorId(@PathVariable("id") Integer id) {
         FamiliaResponse response = familiaService.obtenerPorId(id);
-        return ResponseEntity.ok(new ApiResponse<>(true, "Familia encontrada exitosamente", response));
+        return ResponseEntity.ok(new ApiResponse<>(true, "Familia obtenida", response));
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ADMIN', 'OPERADOR')")
-    @Operation(summary = "Crear nueva familia", description = "Registra una nueva familia e inicializa su correlativo inicial en 1")
+    @PreAuthorize("@moduloAccess.hasAccess(authentication, 'FAMILIAS')")
+    @Operation(summary = "Crear familia")
     public ResponseEntity<ApiResponse<FamiliaResponse>> crear(@Valid @RequestBody FamiliaRequest request) {
         FamiliaResponse response = familiaService.crear(request);
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(new ApiResponse<>(true, "Familia creada exitosamente", response));
+                .body(new ApiResponse<>(true, "Familia creada", response));
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ADMIN', 'OPERADOR')")
-    @Operation(summary = "Actualizar familia", description = "Actualiza los datos de una familia existente")
+    @PreAuthorize("@moduloAccess.hasAccess(authentication, 'FAMILIAS')")
+    @Operation(summary = "Actualizar familia")
     public ResponseEntity<ApiResponse<FamiliaResponse>> actualizar(
             @PathVariable("id") Integer id,
             @Valid @RequestBody FamiliaRequest request) {
         FamiliaResponse response = familiaService.actualizar(id, request);
-        return ResponseEntity.ok(new ApiResponse<>(true, "Familia actualizada exitosamente", response));
+        return ResponseEntity.ok(new ApiResponse<>(true, "Familia actualizada", response));
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ADMIN')")
-    @Operation(summary = "Borrado lógico de familia", description = "Desactiva una familia cambiando su estado a '0'")
+    @PreAuthorize("hasRole('ADMINISTRADOR') and @moduloAccess.hasAccess(authentication, 'FAMILIAS')")
+    @Operation(summary = "Desactivar familia")
     public ResponseEntity<ApiResponse<Void>> eliminar(@PathVariable("id") Integer id) {
         familiaService.cambiarEstado(id, "0");
-        return ResponseEntity.ok(new ApiResponse<>(true, "Familia desactivada exitosamente", null));
+        return ResponseEntity.ok(new ApiResponse<>(true, "Familia desactivada", null));
     }
 }

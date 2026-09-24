@@ -11,12 +11,14 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
+import java.sql.Types;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.hibernate.annotations.ColumnDefault;
+import org.hibernate.annotations.JdbcTypeCode;
 
 @Entity
 @Table(name = "permiso",
@@ -45,5 +47,14 @@ public class Permiso {
 
     @Column(name = "estadopermiso", nullable = false)
     @ColumnDefault("1")
-    private Byte estadoPermiso;
+    @JdbcTypeCode(Types.TINYINT)
+    private Integer estadoPermiso;
+
+    public Integer getEstado() {
+        return estadoPermiso;
+    }
+
+    public void setEstado(Integer estado) {
+        this.estadoPermiso = estado;
+    }
 }

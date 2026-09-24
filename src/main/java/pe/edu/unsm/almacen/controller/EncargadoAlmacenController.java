@@ -27,61 +27,61 @@ import pe.edu.unsm.almacen.service.IEncargadoAlmacenService;
 @RestController
 @RequestMapping("/encargados-almacen")
 @RequiredArgsConstructor
-@Tag(name = "Encargados de Almacén", description = "Gestión del personal responsable de los almacenes")
+@Tag(name = "Encargados de Almacén")
 public class EncargadoAlmacenController {
 
     private final IEncargadoAlmacenService encargadoAlmacenService;
 
     @GetMapping
-    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ADMIN', 'OPERADOR')")
-    @Operation(summary = "Listar encargados de almacén paginados", description = "Retorna un listado paginado con filtro de búsqueda opcional por nombre")
+    @PreAuthorize("@moduloAccess.canRead(authentication, 'ENCARGADOS_ALMACEN', 'EGRESOS')")
+    @Operation(summary = "Listar encargados de almacén paginados")
     public ResponseEntity<ApiResponse<PageResponse<EncargadoAlmacenResponse>>> listar(
             @RequestParam(name = "filtro", required = false) String filtro,
             Pageable pageable) {
         PageResponse<EncargadoAlmacenResponse> response = encargadoAlmacenService.listarPaginado(filtro, pageable);
-        return ResponseEntity.ok(new ApiResponse<>(true, "Encargados de almacén recuperados exitosamente", response));
+        return ResponseEntity.ok(new ApiResponse<>(true, "Encargados de almacén listados", response));
     }
 
     @GetMapping("/activos")
-    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ADMIN', 'OPERADOR')")
-    @Operation(summary = "Listar encargados de almacén activos", description = "Retorna todos los encargados de almacén activos para combos y selección")
+    @PreAuthorize("@moduloAccess.canRead(authentication, 'ENCARGADOS_ALMACEN', 'EGRESOS')")
+    @Operation(summary = "Listar encargados de almacén activos")
     public ResponseEntity<ApiResponse<List<EncargadoAlmacenResponse>>> listarActivos() {
         List<EncargadoAlmacenResponse> response = encargadoAlmacenService.listarActivos();
-        return ResponseEntity.ok(new ApiResponse<>(true, "Encargados de almacén activos recuperados exitosamente", response));
+        return ResponseEntity.ok(new ApiResponse<>(true, "Encargados de almacén activos listados", response));
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ADMIN', 'OPERADOR')")
-    @Operation(summary = "Obtener encargado de almacén por ID", description = "Retorna el detalle de un encargado de almacén específico")
+    @PreAuthorize("@moduloAccess.canRead(authentication, 'ENCARGADOS_ALMACEN', 'EGRESOS')")
+    @Operation(summary = "Obtener encargado de almacén por ID")
     public ResponseEntity<ApiResponse<EncargadoAlmacenResponse>> obtenerPorId(@PathVariable("id") Integer id) {
         EncargadoAlmacenResponse response = encargadoAlmacenService.obtenerPorId(id);
-        return ResponseEntity.ok(new ApiResponse<>(true, "Encargado de almacén encontrado exitosamente", response));
+        return ResponseEntity.ok(new ApiResponse<>(true, "Encargado de almacén obtenido", response));
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ADMIN', 'OPERADOR')")
-    @Operation(summary = "Crear nuevo encargado de almacén", description = "Registra un nuevo encargado de almacén en el sistema")
+    @PreAuthorize("@moduloAccess.hasAccess(authentication, 'ENCARGADOS_ALMACEN')")
+    @Operation(summary = "Crear encargado de almacén")
     public ResponseEntity<ApiResponse<EncargadoAlmacenResponse>> crear(@Valid @RequestBody EncargadoAlmacenRequest request) {
         EncargadoAlmacenResponse response = encargadoAlmacenService.crear(request);
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(new ApiResponse<>(true, "Encargado de almacén creado exitosamente", response));
+                .body(new ApiResponse<>(true, "Encargado de almacén creado", response));
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ADMIN', 'OPERADOR')")
-    @Operation(summary = "Actualizar encargado de almacén", description = "Actualiza los datos de un encargado de almacén existente")
+    @PreAuthorize("@moduloAccess.hasAccess(authentication, 'ENCARGADOS_ALMACEN')")
+    @Operation(summary = "Actualizar encargado de almacén")
     public ResponseEntity<ApiResponse<EncargadoAlmacenResponse>> actualizar(
             @PathVariable("id") Integer id,
             @Valid @RequestBody EncargadoAlmacenRequest request) {
         EncargadoAlmacenResponse response = encargadoAlmacenService.actualizar(id, request);
-        return ResponseEntity.ok(new ApiResponse<>(true, "Encargado de almacén actualizado exitosamente", response));
+        return ResponseEntity.ok(new ApiResponse<>(true, "Encargado de almacén actualizado", response));
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ADMIN')")
-    @Operation(summary = "Borrado lógico de encargado de almacén", description = "Desactiva un encargado de almacén cambiando su estado a '0'")
+    @PreAuthorize("hasRole('ADMINISTRADOR') and @moduloAccess.hasAccess(authentication, 'ENCARGADOS_ALMACEN')")
+    @Operation(summary = "Desactivar encargado de almacén")
     public ResponseEntity<ApiResponse<Void>> eliminar(@PathVariable("id") Integer id) {
         encargadoAlmacenService.cambiarEstado(id, "0");
-        return ResponseEntity.ok(new ApiResponse<>(true, "Encargado de almacén desactivado exitosamente", null));
+        return ResponseEntity.ok(new ApiResponse<>(true, "Encargado de almacén desactivado", null));
     }
 }

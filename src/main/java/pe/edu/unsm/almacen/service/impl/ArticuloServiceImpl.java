@@ -19,6 +19,7 @@ import pe.edu.unsm.almacen.entity.Articulo;
 import pe.edu.unsm.almacen.entity.Familia;
 import pe.edu.unsm.almacen.entity.Marca;
 import pe.edu.unsm.almacen.entity.Ubicacion;
+import pe.edu.unsm.almacen.entity.UnidadMedida;
 import pe.edu.unsm.almacen.exception.BusinessException;
 import pe.edu.unsm.almacen.exception.DuplicateResourceException;
 import pe.edu.unsm.almacen.exception.ResourceNotFoundException;
@@ -26,6 +27,7 @@ import pe.edu.unsm.almacen.repository.ArticuloRepository;
 import pe.edu.unsm.almacen.repository.FamiliaRepository;
 import pe.edu.unsm.almacen.repository.MarcaRepository;
 import pe.edu.unsm.almacen.repository.UbicacionRepository;
+import pe.edu.unsm.almacen.repository.UnidadMedidaRepository;
 import pe.edu.unsm.almacen.service.IArticuloService;
 
 @Service
@@ -37,6 +39,7 @@ public class ArticuloServiceImpl implements IArticuloService {
     private final FamiliaRepository familiaRepository;
     private final MarcaRepository marcaRepository;
     private final UbicacionRepository ubicacionRepository;
+    private final UnidadMedidaRepository unidadMedidaRepository;
 
     @Override
     @Transactional(readOnly = true)
@@ -53,8 +56,9 @@ public class ArticuloServiceImpl implements IArticuloService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<ArticuloResumenResponse> buscarPredictivo(String termino) {
-        List<Articulo> articulos = articuloRepository.buscarPredictivo(termino, PageRequest.of(0, 20));
+    public List<ArticuloResumenResponse> buscarPredictivo(String termino, Boolean soloConStock) {
+        boolean filtrarStock = Boolean.TRUE.equals(soloConStock);
+        List<Articulo> articulos = articuloRepository.buscarPredictivo(termino, filtrarStock, PageRequest.of(0, 20));
         return articulos.stream()
                 .map(this::mapToResumenResponse)
                 .toList();
@@ -74,7 +78,7 @@ public class ArticuloServiceImpl implements IArticuloService {
         String codigoLimpio = request.codigo().trim().toUpperCase();
 
         if (articuloRepository.existsByCodigo(codigoLimpio)) {
-            throw new DuplicateResourceException("Ya existe un artículo registrado con el código: " + codigoLimpio);
+            throw new DuplicateResourceException("Código de artículo duplicado: " + codigoLimpio);
         }
 
         Familia familia = familiaRepository.findById(request.idFamilia())
@@ -86,9 +90,16 @@ public class ArticuloServiceImpl implements IArticuloService {
         Ubicacion ubicacion = ubicacionRepository.findById(request.idUbicacion())
                 .orElseThrow(() -> new ResourceNotFoundException("Ubicación no encontrada con ID: " + request.idUbicacion()));
 
+        UnidadMedida unidadMedida = null;
+        if (request.idUnidadMedida() != null) {
+            unidadMedida = unidadMedidaRepository.findById(request.idUnidadMedida())
+                    .orElseThrow(() -> new ResourceNotFoundException("Unidad de medida no encontrada con ID: " + request.idUnidadMedida()));
+        }
+
         Articulo articulo = Articulo.builder()
                 .codigo(codigoLimpio)
                 .descripcion(request.descripcion().trim())
+                .unidadMedida(unidadMedida)
                 .familia(familia)
                 .marca(marca)
                 .ubicacion(ubicacion)
@@ -102,7 +113,7 @@ public class ArticuloServiceImpl implements IArticuloService {
                 .build();
 
         Articulo guardado = articuloRepository.save(articulo);
-        log.info("Artículo creado con éxito: ID={}, Código={}", guardado.getId(), guardado.getCodigo());
+        log.info("Artículo creado: ID={}, Código={}", guardado.getId(), guardado.getCodigo());
 
         return mapToResponse(guardado);
     }
@@ -114,7 +125,13 @@ public class ArticuloServiceImpl implements IArticuloService {
                 .orElseThrow(() -> new ResourceNotFoundException("Artículo no encontrado con ID: " + id));
 
         if (!"1".equals(articulo.getEstado())) {
-            throw new BusinessException("No se pueden modificar datos de un artículo dado de baja.");
+            throw new BusinessException("Artículo dado de baja.");
+        }
+
+        UnidadMedida unidadMedida = null;
+        if (request.idUnidadMedida() != null) {
+            unidadMedida = unidadMedidaRepository.findById(request.idUnidadMedida())
+                    .orElseThrow(() -> new ResourceNotFoundException("Unidad de medida no encontrada con ID: " + request.idUnidadMedida()));
         }
 
         Familia familia = familiaRepository.findById(request.idFamilia())
@@ -132,6 +149,7 @@ public class ArticuloServiceImpl implements IArticuloService {
         articuloRepository.actualizarDatosMaestros(
                 id,
                 descripcion,
+                unidadMedida,
                 familia,
                 marca,
                 ubicacion,
@@ -139,7 +157,7 @@ public class ArticuloServiceImpl implements IArticuloService {
                 request.precio(),
                 detalle
         );
-        log.info("Artículo actualizado con éxito mediante modificación atómica: ID={}", id);
+        log.info("Artículo actualizado: ID={}", id);
 
         Articulo actualizado = articuloRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Artículo no encontrado con ID: " + id));
@@ -155,7 +173,7 @@ public class ArticuloServiceImpl implements IArticuloService {
         }
 
         articuloRepository.actualizarEstado(id, nuevoEstado);
-        log.info("Estado de artículo ID={} cambiado a '{}' mediante modificación atómica", id, nuevoEstado);
+        log.info("Estado de artículo ID={} cambiado a '{}'", id, nuevoEstado);
     }
 
     @Override
@@ -166,7 +184,7 @@ public class ArticuloServiceImpl implements IArticuloService {
 
         boolean nuevoActivo = !Boolean.TRUE.equals(articulo.getActivo());
         articuloRepository.actualizarActivo(id, nuevoActivo);
-        log.info("Operatividad de artículo ID={} modificada a activo={} mediante modificación atómica", id, nuevoActivo);
+        log.info("Operatividad de artículo ID={} cambiada a activo={}", id, nuevoActivo);
 
         Articulo actualizado = articuloRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Artículo no encontrado con ID: " + id));
@@ -179,6 +197,10 @@ public class ArticuloServiceImpl implements IArticuloService {
                 a.getId(),
                 a.getCodigo(),
                 a.getDescripcion(),
+                a.getUnidadMedida() != null ? a.getUnidadMedida().getId() : null,
+                a.getUnidadMedida() != null ? a.getUnidadMedida().getNombre() : null,
+                a.getUnidadMedida() != null ? a.getUnidadMedida().getSimbolo() : null,
+                a.getUnidadMedida() != null ? a.getUnidadMedida().getPermiteDecimales() : null,
                 a.getFamilia() != null ? a.getFamilia().getId() : null,
                 a.getFamilia() != null ? a.getFamilia().getNombre() : null,
                 a.getMarca() != null ? a.getMarca().getId() : null,
@@ -200,6 +222,8 @@ public class ArticuloServiceImpl implements IArticuloService {
                 a.getId(),
                 a.getCodigo(),
                 a.getDescripcion(),
+                a.getUnidadMedida() != null ? a.getUnidadMedida().getSimbolo() : null,
+                a.getUnidadMedida() != null ? a.getUnidadMedida().getPermiteDecimales() : null,
                 a.getSaldo(),
                 a.getPrecio(),
                 a.getFamilia() != null ? a.getFamilia().getNombre() : null,

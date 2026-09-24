@@ -27,61 +27,61 @@ import pe.edu.unsm.almacen.service.IEncargadoService;
 @RestController
 @RequestMapping("/encargados")
 @RequiredArgsConstructor
-@Tag(name = "Encargados", description = "Gestión del personal encargado y responsables de dependencias")
+@Tag(name = "Encargados")
 public class EncargadoController {
 
     private final IEncargadoService encargadoService;
 
     @GetMapping
-    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ADMIN', 'OPERADOR')")
-    @Operation(summary = "Listar encargados paginados", description = "Retorna un listado paginado con filtro de búsqueda opcional por nombres, apellidos, DNI o ambiente")
+    @PreAuthorize("@moduloAccess.canRead(authentication, 'ENCARGADOS', 'EGRESOS')")
+    @Operation(summary = "Listar encargados paginados")
     public ResponseEntity<ApiResponse<PageResponse<EncargadoResponse>>> listar(
             @RequestParam(name = "filtro", required = false) String filtro,
             Pageable pageable) {
         PageResponse<EncargadoResponse> response = encargadoService.listarPaginado(filtro, pageable);
-        return ResponseEntity.ok(new ApiResponse<>(true, "Encargados recuperados exitosamente", response));
+        return ResponseEntity.ok(new ApiResponse<>(true, "Encargados listados", response));
     }
 
     @GetMapping("/activos")
-    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ADMIN', 'OPERADOR')")
-    @Operation(summary = "Listar encargados activos", description = "Retorna todos los encargados activos para combos y selección")
+    @PreAuthorize("@moduloAccess.canRead(authentication, 'ENCARGADOS', 'EGRESOS')")
+    @Operation(summary = "Listar encargados activos")
     public ResponseEntity<ApiResponse<List<EncargadoResponse>>> listarActivos() {
         List<EncargadoResponse> response = encargadoService.listarActivos();
-        return ResponseEntity.ok(new ApiResponse<>(true, "Encargados activos recuperados exitosamente", response));
+        return ResponseEntity.ok(new ApiResponse<>(true, "Encargados activos listados", response));
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ADMIN', 'OPERADOR')")
-    @Operation(summary = "Obtener encargado por ID", description = "Retorna el detalle de un encargado específico")
+    @PreAuthorize("@moduloAccess.canRead(authentication, 'ENCARGADOS', 'EGRESOS')")
+    @Operation(summary = "Obtener encargado por ID")
     public ResponseEntity<ApiResponse<EncargadoResponse>> obtenerPorId(@PathVariable("id") Integer id) {
         EncargadoResponse response = encargadoService.obtenerPorId(id);
-        return ResponseEntity.ok(new ApiResponse<>(true, "Encargado encontrado exitosamente", response));
+        return ResponseEntity.ok(new ApiResponse<>(true, "Encargado obtenido", response));
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ADMIN', 'OPERADOR')")
-    @Operation(summary = "Crear nuevo encargado", description = "Registra un nuevo encargado en el sistema")
+    @PreAuthorize("@moduloAccess.hasAccess(authentication, 'ENCARGADOS')")
+    @Operation(summary = "Crear encargado")
     public ResponseEntity<ApiResponse<EncargadoResponse>> crear(@Valid @RequestBody EncargadoRequest request) {
         EncargadoResponse response = encargadoService.crear(request);
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(new ApiResponse<>(true, "Encargado creado exitosamente", response));
+                .body(new ApiResponse<>(true, "Encargado creado", response));
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ADMIN', 'OPERADOR')")
-    @Operation(summary = "Actualizar encargado", description = "Actualiza los datos de un encargado existente")
+    @PreAuthorize("@moduloAccess.hasAccess(authentication, 'ENCARGADOS')")
+    @Operation(summary = "Actualizar encargado")
     public ResponseEntity<ApiResponse<EncargadoResponse>> actualizar(
             @PathVariable("id") Integer id,
             @Valid @RequestBody EncargadoRequest request) {
         EncargadoResponse response = encargadoService.actualizar(id, request);
-        return ResponseEntity.ok(new ApiResponse<>(true, "Encargado actualizado exitosamente", response));
+        return ResponseEntity.ok(new ApiResponse<>(true, "Encargado actualizado", response));
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ADMIN')")
-    @Operation(summary = "Borrado lógico de encargado", description = "Desactiva un encargado cambiando su estado a '0'")
+    @PreAuthorize("hasRole('ADMINISTRADOR') and @moduloAccess.hasAccess(authentication, 'ENCARGADOS')")
+    @Operation(summary = "Desactivar encargado")
     public ResponseEntity<ApiResponse<Void>> eliminar(@PathVariable("id") Integer id) {
         encargadoService.cambiarEstado(id, "0");
-        return ResponseEntity.ok(new ApiResponse<>(true, "Encargado desactivado exitosamente", null));
+        return ResponseEntity.ok(new ApiResponse<>(true, "Encargado desactivado", null));
     }
 }

@@ -32,4 +32,6 @@ public interface IngresoRepository extends JpaRepository<Ingreso, Integer> {
     @EntityGraph(attributePaths = {"proveedor"})
     @Override
     Optional<Ingreso> findById(Integer id);
+
+    boolean existsByNumeroOrdenCompraAndEstado(String numeroOrdenCompra, String estado);
 }

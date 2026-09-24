@@ -19,7 +19,7 @@ public interface IArticuloService {
             Pageable pageable
     );
 
-    List<ArticuloResumenResponse> buscarPredictivo(String termino);
+    List<ArticuloResumenResponse> buscarPredictivo(String termino, Boolean soloConStock);
 
     ArticuloResponse obtenerPorId(Integer id);
 

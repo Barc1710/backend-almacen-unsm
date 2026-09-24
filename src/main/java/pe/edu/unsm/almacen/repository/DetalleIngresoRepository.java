@@ -15,4 +15,16 @@ public interface DetalleIngresoRepository extends JpaRepository<DetalleIngreso, 
     @Query("SELECT d.ingreso.id, COALESCE(SUM(ROUND(d.cantidad * d.precio, 2)), 0.00) FROM DetalleIngreso d "
             + "WHERE d.ingreso.id IN :ids GROUP BY d.ingreso.id")
     List<Object[]> sumarTotalesPorIngresoIds(@Param("ids") List<Integer> ids);
+
+    @Query("""
+        SELECT di.articulo.id, i.numeroOrdenCompra
+        FROM DetalleIngreso di
+        JOIN di.ingreso i
+        WHERE di.articulo.id IN :articuloIds
+          AND i.numeroOrdenCompra IS NOT NULL
+          AND i.numeroOrdenCompra <> ''
+          AND i.estado = '1'
+        ORDER BY i.fecha DESC, di.id DESC
+    """)
+    List<Object[]> findOrdenesCompraPorArticuloIds(@Param("articuloIds") List<Integer> articuloIds);
 }

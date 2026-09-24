@@ -6,12 +6,18 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import java.util.List;
 
+import pe.edu.unsm.almacen.entity.TipoEgreso;
+
 public record EgresoCreateRequest(
         @NotNull(message = "El cliente/destinatario es obligatorio")
         Integer idCliente,
 
-        @NotNull(message = "El encargado solicitante es obligatorio")
         Integer idEncargado,
+
+        @Size(max = 150, message = "El nombre del encargado libre no puede exceder los 150 caracteres")
+        String nombreEncargadoLibre,
+
+        TipoEgreso tipoEgreso,
 
         @NotNull(message = "El área de destino es obligatoria")
         Integer idArea,

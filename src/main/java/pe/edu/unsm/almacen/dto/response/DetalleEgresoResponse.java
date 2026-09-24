@@ -8,6 +8,7 @@ public record DetalleEgresoResponse(
         Integer idArticulo,
         String codigoArticulo,
         String descripcionArticulo,
+        String numeroOrdenCompra,
         BigDecimal cantidad,
         BigDecimal precio,
         BigDecimal subtotal,

@@ -71,4 +71,8 @@ public class Usuario {
     public String getNombreCompleto() {
         return (nombre != null ? nombre : "") + (apellido != null ? " " + apellido : "");
     }
+
+    public Integer getId() {
+        return this.idUsuario;
+    }
 }

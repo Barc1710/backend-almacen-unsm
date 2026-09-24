@@ -6,12 +6,14 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import java.sql.Types;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.hibernate.annotations.ColumnDefault;
+import org.hibernate.annotations.JdbcTypeCode;
 
 @Entity
 @Table(name = "modulo")
@@ -26,6 +28,9 @@ public class Modulo {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id_modulo", nullable = false)
     private Integer idModulo;
+
+    @Column(name = "codigo", length = 50, unique = true)
+    private String codigo;
 
     @Column(name = "nombre", nullable = false, length = 100)
     private String nombre;
@@ -42,5 +47,14 @@ public class Modulo {
 
     @Column(name = "estado", nullable = false)
     @ColumnDefault("1")
-    private Byte estado;
+    @JdbcTypeCode(Types.TINYINT)
+    private Integer estado;
+
+    public Integer getEstado() {
+        return estado;
+    }
+
+    public void setEstado(Integer estado) {
+        this.estado = estado;
+    }
 }

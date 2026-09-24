@@ -27,61 +27,61 @@ import pe.edu.unsm.almacen.service.IAreaService;
 @RestController
 @RequestMapping("/areas")
 @RequiredArgsConstructor
-@Tag(name = "Áreas", description = "Gestión del catálogo de áreas")
+@Tag(name = "Áreas")
 public class AreaController {
 
     private final IAreaService areaService;
 
     @GetMapping
-    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ADMIN', 'OPERADOR')")
-    @Operation(summary = "Listar áreas paginadas", description = "Retorna un listado paginado con filtro de búsqueda opcional por nombre")
+    @PreAuthorize("@moduloAccess.canRead(authentication, 'AREAS', 'EGRESOS')")
+    @Operation(summary = "Listar áreas paginadas")
     public ResponseEntity<ApiResponse<PageResponse<AreaResponse>>> listar(
             @RequestParam(name = "filtro", required = false) String filtro,
             Pageable pageable) {
         PageResponse<AreaResponse> response = areaService.listarPaginado(filtro, pageable);
-        return ResponseEntity.ok(new ApiResponse<>(true, "Áreas recuperadas exitosamente", response));
+        return ResponseEntity.ok(new ApiResponse<>(true, "Áreas listadas", response));
     }
 
     @GetMapping("/activos")
-    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ADMIN', 'OPERADOR')")
-    @Operation(summary = "Listar áreas activas", description = "Retorna todas las áreas activas para combos y selección")
+    @PreAuthorize("@moduloAccess.canRead(authentication, 'AREAS', 'EGRESOS')")
+    @Operation(summary = "Listar áreas activas")
     public ResponseEntity<ApiResponse<List<AreaResponse>>> listarActivos() {
         List<AreaResponse> response = areaService.listarActivos();
-        return ResponseEntity.ok(new ApiResponse<>(true, "Áreas activas recuperadas exitosamente", response));
+        return ResponseEntity.ok(new ApiResponse<>(true, "Áreas activas listadas", response));
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ADMIN', 'OPERADOR')")
-    @Operation(summary = "Obtener área por ID", description = "Retorna el detalle de un área específica")
+    @PreAuthorize("@moduloAccess.canRead(authentication, 'AREAS', 'EGRESOS')")
+    @Operation(summary = "Obtener área por ID")
     public ResponseEntity<ApiResponse<AreaResponse>> obtenerPorId(@PathVariable("id") Integer id) {
         AreaResponse response = areaService.obtenerPorId(id);
-        return ResponseEntity.ok(new ApiResponse<>(true, "Área encontrada exitosamente", response));
+        return ResponseEntity.ok(new ApiResponse<>(true, "Área obtenida", response));
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ADMIN', 'OPERADOR')")
-    @Operation(summary = "Crear nueva área", description = "Registra una nueva área en el sistema")
+    @PreAuthorize("@moduloAccess.hasAccess(authentication, 'AREAS')")
+    @Operation(summary = "Crear área")
     public ResponseEntity<ApiResponse<AreaResponse>> crear(@Valid @RequestBody AreaRequest request) {
         AreaResponse response = areaService.crear(request);
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(new ApiResponse<>(true, "Área creada exitosamente", response));
+                .body(new ApiResponse<>(true, "Área creada", response));
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ADMIN', 'OPERADOR')")
-    @Operation(summary = "Actualizar área", description = "Actualiza los datos de un área existente")
+    @PreAuthorize("@moduloAccess.hasAccess(authentication, 'AREAS')")
+    @Operation(summary = "Actualizar área")
     public ResponseEntity<ApiResponse<AreaResponse>> actualizar(
             @PathVariable("id") Integer id,
             @Valid @RequestBody AreaRequest request) {
         AreaResponse response = areaService.actualizar(id, request);
-        return ResponseEntity.ok(new ApiResponse<>(true, "Área actualizada exitosamente", response));
+        return ResponseEntity.ok(new ApiResponse<>(true, "Área actualizada", response));
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ADMIN')")
-    @Operation(summary = "Borrado lógico de área", description = "Desactiva un área cambiando su estado a '0'")
+    @PreAuthorize("hasRole('ADMINISTRADOR') and @moduloAccess.hasAccess(authentication, 'AREAS')")
+    @Operation(summary = "Desactivar área")
     public ResponseEntity<ApiResponse<Void>> eliminar(@PathVariable("id") Integer id) {
         areaService.cambiarEstado(id, "0");
-        return ResponseEntity.ok(new ApiResponse<>(true, "Área desactivada exitosamente", null));
+        return ResponseEntity.ok(new ApiResponse<>(true, "Área desactivada", null));
     }
 }

@@ -6,6 +6,8 @@ public record ArticuloResumenResponse(
         Integer id,
         String codigo,
         String descripcion,
+        String simboloUnidadMedida,
+        Boolean permiteDecimales,
         BigDecimal saldo,
         BigDecimal precio,
         String nombreFamilia,

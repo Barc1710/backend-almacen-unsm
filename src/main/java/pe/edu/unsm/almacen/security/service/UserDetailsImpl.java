@@ -48,10 +48,11 @@ public class UserDetailsImpl implements UserDetails {
     }
 
     public static UserDetailsImpl build(Usuario usuario) {
-        String nombrePerfil = usuario.getPerfil() != null ? usuario.getPerfil().getNombrePerfil() : "USER";
-        String roleName = nombrePerfil.toUpperCase().startsWith("ROLE_")
-                ? nombrePerfil.toUpperCase()
-                : "ROLE_" + nombrePerfil.toUpperCase();
+        String nombrePerfil = usuario.getPerfil() != null ? usuario.getPerfil().getNombrePerfil() : "USUARIO";
+        boolean administrador = usuario.getPerfil() != null
+                && Integer.valueOf(1).equals(usuario.getPerfil().getIdPerfil())
+                && "ADMINISTRADOR".equalsIgnoreCase(nombrePerfil.trim());
+        String roleName = administrador ? "ROLE_ADMINISTRADOR" : "ROLE_PERFIL";
 
         List<GrantedAuthority> authorities = Collections.singletonList(new SimpleGrantedAuthority(roleName));
         boolean usuarioActivo = "1".equals(usuario.getEstado());

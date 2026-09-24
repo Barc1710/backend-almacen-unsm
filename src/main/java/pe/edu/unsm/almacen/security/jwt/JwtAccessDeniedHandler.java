@@ -28,7 +28,7 @@ public class JwtAccessDeniedHandler implements AccessDeniedHandler {
 
         ApiResponse<Void> apiResponse = new ApiResponse<>(
                 false,
-                "Acceso denegado: no cuenta con los privilegios requeridos para realizar esta acción.",
+                "Acceso denegado.",
                 null
         );
 

@@ -27,61 +27,61 @@ import pe.edu.unsm.almacen.service.IUbicacionService;
 @RestController
 @RequestMapping("/ubicaciones")
 @RequiredArgsConstructor
-@Tag(name = "Ubicaciones", description = "Gestión del catálogo de ubicaciones físicas de almacenamiento")
+@Tag(name = "Ubicaciones")
 public class UbicacionController {
 
     private final IUbicacionService ubicacionService;
 
     @GetMapping
-    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ADMIN', 'OPERADOR')")
-    @Operation(summary = "Listar ubicaciones paginadas", description = "Retorna un listado paginado con filtro de búsqueda opcional por nombre o descripción")
+    @PreAuthorize("@moduloAccess.canRead(authentication, 'UBICACIONES', 'ARTICULOS')")
+    @Operation(summary = "Listar ubicaciones paginadas")
     public ResponseEntity<ApiResponse<PageResponse<UbicacionResponse>>> listar(
             @RequestParam(name = "filtro", required = false) String filtro,
             Pageable pageable) {
         PageResponse<UbicacionResponse> response = ubicacionService.listarPaginado(filtro, pageable);
-        return ResponseEntity.ok(new ApiResponse<>(true, "Ubicaciones recuperadas exitosamente", response));
+        return ResponseEntity.ok(new ApiResponse<>(true, "Ubicaciones listadas", response));
     }
 
     @GetMapping("/activos")
-    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ADMIN', 'OPERADOR')")
-    @Operation(summary = "Listar ubicaciones activas", description = "Retorna todas las ubicaciones activas para combos y selección")
+    @PreAuthorize("@moduloAccess.canRead(authentication, 'UBICACIONES', 'ARTICULOS')")
+    @Operation(summary = "Listar ubicaciones activas")
     public ResponseEntity<ApiResponse<List<UbicacionResponse>>> listarActivos() {
         List<UbicacionResponse> response = ubicacionService.listarActivos();
-        return ResponseEntity.ok(new ApiResponse<>(true, "Ubicaciones activas recuperadas exitosamente", response));
+        return ResponseEntity.ok(new ApiResponse<>(true, "Ubicaciones activas listadas", response));
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ADMIN', 'OPERADOR')")
-    @Operation(summary = "Obtener ubicación por ID", description = "Retorna el detalle de una ubicación específica")
+    @PreAuthorize("@moduloAccess.canRead(authentication, 'UBICACIONES', 'ARTICULOS')")
+    @Operation(summary = "Obtener ubicación por ID")
     public ResponseEntity<ApiResponse<UbicacionResponse>> obtenerPorId(@PathVariable("id") Integer id) {
         UbicacionResponse response = ubicacionService.obtenerPorId(id);
-        return ResponseEntity.ok(new ApiResponse<>(true, "Ubicación encontrada exitosamente", response));
+        return ResponseEntity.ok(new ApiResponse<>(true, "Ubicación obtenida", response));
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ADMIN', 'OPERADOR')")
-    @Operation(summary = "Crear nueva ubicación", description = "Registra una nueva ubicación física en el almacén")
+    @PreAuthorize("@moduloAccess.hasAccess(authentication, 'UBICACIONES')")
+    @Operation(summary = "Crear ubicación")
     public ResponseEntity<ApiResponse<UbicacionResponse>> crear(@Valid @RequestBody UbicacionRequest request) {
         UbicacionResponse response = ubicacionService.crear(request);
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(new ApiResponse<>(true, "Ubicación creada exitosamente", response));
+                .body(new ApiResponse<>(true, "Ubicación creada", response));
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ADMIN', 'OPERADOR')")
-    @Operation(summary = "Actualizar ubicación", description = "Actualiza los datos de una ubicación existente")
+    @PreAuthorize("@moduloAccess.hasAccess(authentication, 'UBICACIONES')")
+    @Operation(summary = "Actualizar ubicación")
     public ResponseEntity<ApiResponse<UbicacionResponse>> actualizar(
             @PathVariable("id") Integer id,
             @Valid @RequestBody UbicacionRequest request) {
         UbicacionResponse response = ubicacionService.actualizar(id, request);
-        return ResponseEntity.ok(new ApiResponse<>(true, "Ubicación actualizada exitosamente", response));
+        return ResponseEntity.ok(new ApiResponse<>(true, "Ubicación actualizada", response));
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ADMIN')")
-    @Operation(summary = "Borrado lógico de ubicación", description = "Desactiva una ubicación cambiando su estado a '0'")
+    @PreAuthorize("hasRole('ADMINISTRADOR') and @moduloAccess.hasAccess(authentication, 'UBICACIONES')")
+    @Operation(summary = "Desactivar ubicación")
     public ResponseEntity<ApiResponse<Void>> eliminar(@PathVariable("id") Integer id) {
         ubicacionService.cambiarEstado(id, "0");
-        return ResponseEntity.ok(new ApiResponse<>(true, "Ubicación desactivada exitosamente", null));
+        return ResponseEntity.ok(new ApiResponse<>(true, "Ubicación desactivada", null));
     }
 }

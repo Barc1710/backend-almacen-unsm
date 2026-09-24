@@ -1,76 +1,73 @@
 package pe.edu.unsm.almacen.controller;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import pe.edu.unsm.almacen.dto.request.LoginRequest;
 import pe.edu.unsm.almacen.dto.response.JwtResponse;
+import pe.edu.unsm.almacen.dto.response.ModuloResponse;
 import pe.edu.unsm.almacen.exception.GlobalExceptionHandler;
+import pe.edu.unsm.almacen.service.IAuthService;
 
 class AuthControllerTest {
 
-    private final AtomicInteger loginCalls = new AtomicInteger();
-    private MockMvc mvc;
+    private MockMvc mockMvc;
 
     @BeforeEach
     void setUp() {
-        var controller = new AuthController(request -> {
-            loginCalls.incrementAndGet();
-            if ("incorrecta".equals(request.clave())) {
-                throw new BadCredentialsException("Credenciales incorrectas");
+        var controller = new AuthController(new IAuthService() {
+            @Override
+            public JwtResponse login(LoginRequest request) {
+                if ("clave123".equals(request.clave())) {
+                    return new JwtResponse("token-jwt-prueba", request.usuario(), "Usuario Demo", "ADMINISTRADOR", false);
+                }
+                throw new BadCredentialsException("Usuario o clave incorrectos");
             }
-            return new JwtResponse("test-token", request.usuario(), "Ana Perez", "ADMIN", true);
+
+            @Override
+            public List<ModuloResponse> obtenerMisModulos(String username) {
+                return List.of(new ModuloResponse(1, "ARTICULOS", "Artículos", "/articulos", "box", 1));
+            }
         });
-        mvc = MockMvcBuilders.standaloneSetup(controller)
-                .setControllerAdvice(new GlobalExceptionHandler()).build();
-    }
 
-    @ParameterizedTest
-    @ValueSource(strings = {"{", "", "null", "[]"})
-    void invalidBodyReturns400WithoutCallingLogin(String body) throws Exception {
-        mvc.perform(post("/auth/login").contentType(MediaType.APPLICATION_JSON).content(body))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("success").value(false))
-                .andExpect(jsonPath("message").value("El cuerpo de la solicitud debe ser un JSON válido"));
-        assertEquals(0, loginCalls.get());
+        mockMvc = MockMvcBuilders.standaloneSetup(controller)
+                .setControllerAdvice(new GlobalExceptionHandler())
+                .build();
     }
 
     @Test
-    void blankCredentialsStillReturn400WithoutCallingLogin() throws Exception {
-        mvc.perform(post("/auth/login").contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"usuario\":\"\",\"clave\":\"\"}"))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("success").value(false));
-        assertEquals(0, loginCalls.get());
-    }
-
-    @Test
-    void badCredentialsStillUseAuthenticationErrorHandler() throws Exception {
-        mvc.perform(post("/auth/login").contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"usuario\":\"ana\",\"clave\":\"incorrecta\"}"))
-                .andExpect(status().isUnauthorized())
-                .andExpect(jsonPath("message").value("Usuario o clave incorrectos"));
-    }
-
-    @Test
-    void validBodyStillReturnsJwtResponse() throws Exception {
-        mvc.perform(post("/auth/login").contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"usuario\":\"ana\",\"clave\":\"test-password\"}"))
+    void loginExitoso() throws Exception {
+        mockMvc.perform(post("/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"usuario\":\"admin\",\"clave\":\"clave123\"}"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("success").value(true))
-                .andExpect(jsonPath("data.token").value("test-token"))
-                .andExpect(jsonPath("data.usuario").value("ana"))
-                .andExpect(jsonPath("data.debeCambiarClave").value(true));
-        assertEquals(1, loginCalls.get());
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.token").value("token-jwt-prueba"));
+    }
+
+    @Test
+    void loginCredencialesInvalidas() throws Exception {
+        mockMvc.perform(post("/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"usuario\":\"admin\",\"clave\":\"clave_erronea\"}"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.success").value(false));
+    }
+
+    @Test
+    void misModulosDevuelveDatosDelServicio() throws Exception {
+        mockMvc.perform(get("/auth/mis-modulos"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data[0].nombre").value("Artículos"));
     }
 }

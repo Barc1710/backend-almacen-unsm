@@ -27,14 +27,14 @@ import pe.edu.unsm.almacen.service.IEgresoService;
 @RestController
 @RequestMapping("/egresos")
 @RequiredArgsConstructor
-@Tag(name = "Egresos", description = "Gestión de despachos/egresos de almacén, control de stock, anulaciones y kardex")
+@Tag(name = "Egresos")
 public class EgresoController {
 
     private final IEgresoService egresoService;
 
     @GetMapping
-    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ADMIN', 'OPERADOR')")
-    @Operation(summary = "Listar egresos paginados", description = "Retorna el listado paginado de egresos con filtros opcionales de cliente, área, estado y rango de fechas")
+    @PreAuthorize("@moduloAccess.hasAccess(authentication, 'EGRESOS')")
+    @Operation(summary = "Listar egresos paginados")
     public ResponseEntity<ApiResponse<PageResponse<EgresoResponse>>> listar(
             @RequestParam(name = "idCliente", required = false) Integer idCliente,
             @RequestParam(name = "idArea", required = false) Integer idArea,
@@ -43,20 +43,20 @@ public class EgresoController {
             @RequestParam(name = "estado", required = false) String estado,
             Pageable pageable) {
         PageResponse<EgresoResponse> response = egresoService.listar(idCliente, idArea, desde, hasta, estado, pageable);
-        return ResponseEntity.ok(new ApiResponse<>(true, "Egresos recuperados exitosamente", response));
+        return ResponseEntity.ok(new ApiResponse<>(true, "Egresos listados", response));
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ADMIN', 'OPERADOR')")
-    @Operation(summary = "Obtener egreso por ID", description = "Retorna el detalle completo de un egreso junto con las líneas despachadas")
+    @PreAuthorize("@moduloAccess.hasAccess(authentication, 'EGRESOS')")
+    @Operation(summary = "Obtener egreso por ID")
     public ResponseEntity<ApiResponse<EgresoResponse>> obtenerPorId(@PathVariable("id") Integer id) {
         EgresoResponse response = egresoService.obtenerPorId(id);
-        return ResponseEntity.ok(new ApiResponse<>(true, "Egreso encontrado exitosamente", response));
+        return ResponseEntity.ok(new ApiResponse<>(true, "Egreso obtenido", response));
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ADMIN', 'OPERADOR')")
-    @Operation(summary = "Registrar nuevo egreso/despacho", description = "Registra un despacho de artículos, descuenta stock con bloqueo pesimista y asienta movimientos en Kardex")
+    @PreAuthorize("@moduloAccess.hasAccess(authentication, 'EGRESOS')")
+    @Operation(summary = "Registrar egreso")
     public ResponseEntity<ApiResponse<EgresoResponse>> registrar(@Valid @RequestBody EgresoCreateRequest request) {
         EgresoResponse response = egresoService.registrar(request);
         URI location = ServletUriComponentsBuilder.fromCurrentRequest()
@@ -64,14 +64,14 @@ public class EgresoController {
                 .buildAndExpand(response.id())
                 .toUri();
         return ResponseEntity.created(location)
-                .body(new ApiResponse<>(true, "Egreso registrado exitosamente", response));
+                .body(new ApiResponse<>(true, "Egreso registrado", response));
     }
 
     @PostMapping("/{id}/anular")
-    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ADMIN')")
-    @Operation(summary = "Anular egreso", description = "Anula un egreso activo, restituye el stock a cada artículo mediante bloqueo pesimista y registra el contracargo en Kardex")
+    @PreAuthorize("hasRole('ADMINISTRADOR') and @moduloAccess.hasAccess(authentication, 'EGRESOS')")
+    @Operation(summary = "Anular egreso")
     public ResponseEntity<ApiResponse<EgresoResponse>> anular(@PathVariable("id") Integer id) {
         EgresoResponse response = egresoService.anular(id);
-        return ResponseEntity.ok(new ApiResponse<>(true, "Egreso anulado exitosamente y stock restituido", response));
+        return ResponseEntity.ok(new ApiResponse<>(true, "Egreso anulado", response));
     }
 }

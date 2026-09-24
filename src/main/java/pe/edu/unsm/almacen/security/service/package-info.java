@@ -1,4 +1,4 @@
 /**
- * Servicios de autenticación y carga de usuarios pendientes de implementación.
+ * Servicios de autenticación y carga de identidad de usuarios para Spring Security.
  */
 package pe.edu.unsm.almacen.security.service;

@@ -7,6 +7,7 @@ import java.time.LocalDateTime;
 import java.time.Year;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -16,6 +17,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -33,6 +35,7 @@ import pe.edu.unsm.almacen.entity.Egreso;
 import pe.edu.unsm.almacen.entity.Encargado;
 import pe.edu.unsm.almacen.entity.EncargadoAlmacen;
 import pe.edu.unsm.almacen.entity.KardexMovimiento;
+import pe.edu.unsm.almacen.entity.TipoEgreso;
 import pe.edu.unsm.almacen.entity.TipoMovimiento;
 import pe.edu.unsm.almacen.entity.Usuario;
 import pe.edu.unsm.almacen.exception.BusinessException;
@@ -43,6 +46,7 @@ import pe.edu.unsm.almacen.repository.AreaRepository;
 import pe.edu.unsm.almacen.repository.ArticuloRepository;
 import pe.edu.unsm.almacen.repository.ClienteRepository;
 import pe.edu.unsm.almacen.repository.DetalleEgresoRepository;
+import pe.edu.unsm.almacen.repository.DetalleIngresoRepository;
 import pe.edu.unsm.almacen.repository.EgresoRepository;
 import pe.edu.unsm.almacen.repository.EncargadoAlmacenRepository;
 import pe.edu.unsm.almacen.repository.EncargadoRepository;
@@ -58,6 +62,7 @@ public class EgresoServiceImpl implements IEgresoService {
 
     private final EgresoRepository egresoRepository;
     private final DetalleEgresoRepository detalleEgresoRepository;
+    private final DetalleIngresoRepository detalleIngresoRepository;
     private final ArticuloRepository articuloRepository;
     private final ClienteRepository clienteRepository;
     private final EncargadoRepository encargadoRepository;
@@ -93,39 +98,48 @@ public class EgresoServiceImpl implements IEgresoService {
     @Override
     @Transactional
     public EgresoResponse registrar(EgresoCreateRequest request) {
-        log.info("Iniciando registro de despacho/egreso para cliente ID: {}", request.idCliente());
-
-        // 1. Validación de Unicidad en el Lote (Anti-duplicidad)
         Set<Integer> articulosVistos = new HashSet<>();
         for (DetalleEgresoRequest item : request.detalles()) {
             if (!articulosVistos.add(item.idArticulo())) {
-                throw new DuplicateResourceException(
-                        "El artículo con ID " + item.idArticulo() + " está duplicado en la lista de detalles del despacho"
-                );
+                throw new DuplicateResourceException("Artículo repetido en el egreso: " + item.idArticulo());
             }
         }
 
-        // 2. Prevención de Deadlocks: Ordenamiento ascendente de los ítems por ID de artículo
         List<DetalleEgresoRequest> detallesOrdenados = request.detalles().stream()
                 .sorted(Comparator.comparing(DetalleEgresoRequest::idArticulo))
                 .toList();
 
-        // 3. Validación y carga de entidades maestras
+        TipoEgreso tipoEgreso = request.tipoEgreso() != null ? request.tipoEgreso() : TipoEgreso.DESPACHO_ORDINARIO;
+        if (tipoEgreso != TipoEgreso.DESPACHO_ORDINARIO) {
+            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+            boolean esAdmin = auth != null && auth.getAuthorities().stream()
+                    .anyMatch(a -> a.getAuthority().equals("ROLE_ADMINISTRADOR"));
+            if (!esAdmin) {
+                throw new AccessDeniedException("Solo ADMINISTRADOR puede registrar una baja.");
+            }
+        }
+
         Cliente cliente = clienteRepository.findById(request.idCliente())
                 .orElseThrow(() -> new ResourceNotFoundException("Cliente no encontrado con ID: " + request.idCliente()));
-        Encargado encargado = encargadoRepository.findById(request.idEncargado())
-                .orElseThrow(() -> new ResourceNotFoundException("Encargado no encontrado con ID: " + request.idEncargado()));
+
+        Encargado encargado = null;
+        String nombreEncargadoLibre = null;
+        if (request.idEncargado() != null) {
+            encargado = encargadoRepository.findById(request.idEncargado())
+                    .orElseThrow(() -> new ResourceNotFoundException("Encargado no encontrado con ID: " + request.idEncargado()));
+        } else if (request.nombreEncargadoLibre() != null && !request.nombreEncargadoLibre().trim().isEmpty()) {
+            nombreEncargadoLibre = request.nombreEncargadoLibre().trim();
+        } else {
+            throw new BusinessException("Indica un encargado o su nombre.");
+        }
+
         Area area = areaRepository.findById(request.idArea())
                 .orElseThrow(() -> new ResourceNotFoundException("Área no encontrada con ID: " + request.idArea()));
         EncargadoAlmacen encargadoAlmacen = encargadoAlmacenRepository.findById(request.idEncargadoAlmacen())
                 .orElseThrow(() -> new ResourceNotFoundException("Encargado de almacén no encontrado con ID: " + request.idEncargadoAlmacen()));
 
-        // 4. Seguridad Estricta: Obtención del usuario autenticado sin fallback silencioso
         Usuario usuarioActual = obtenerUsuarioActual();
 
-        // La base actual no tiene una restricción única para el correlativo.
-        // Este cerrojo mantiene la numeración segura dentro de esta instancia,
-        // incluyendo el commit de la transacción.
         String prefijo = (request.prefijo() != null && !request.prefijo().isBlank())
                 ? request.prefijo().trim().toUpperCase()
                 : "A" + String.format("%02d", Year.now().getValue() % 100);
@@ -133,50 +147,52 @@ public class EgresoServiceImpl implements IEgresoService {
         Integer maxCorrelativo = egresoRepository.obtenerMaximoCorrelativo(prefijo);
         int nuevoCorrelativo = (maxCorrelativo != null ? maxCorrelativo : 0) + 1;
 
-        // 6. Registro de la cabecera del Egreso
         Egreso egreso = Egreso.builder()
                 .cliente(cliente)
                 .encargado(encargado)
+                .nombreEncargadoLibre(nombreEncargadoLibre)
                 .area(area)
                 .encargadoAlmacen(encargadoAlmacen)
+                .usuario(usuarioActual)
                 .ambiente(request.ambiente() != null ? request.ambiente().trim() : "")
                 .prefijo(prefijo)
                 .correlativo(nuevoCorrelativo)
+                .tipoEgreso(tipoEgreso)
                 .fecha(LocalDateTime.now())
                 .estado("1")
                 .build();
         Egreso egresoGuardado = egresoRepository.saveAndFlush(egreso);
 
+        List<Integer> articuloIds = detallesOrdenados.stream()
+                .map(DetalleEgresoRequest::idArticulo)
+                .toList();
+        Map<Integer, String> ordenesCompra = buscarOrdenesCompra(articuloIds);
+
         List<DetalleEgresoResponse> detallesResponse = new ArrayList<>();
         BigDecimal totalEgreso = BigDecimal.ZERO;
 
-        // 7. Procesamiento de líneas: Bloqueo pesimista, control anti-saldo negativo, deducción y auditoría Kardex
         for (DetalleEgresoRequest item : detallesOrdenados) {
             Articulo articulo = articuloRepository.findByIdWithLock(item.idArticulo())
                     .orElseThrow(() -> new ResourceNotFoundException("Artículo no encontrado con ID: " + item.idArticulo()));
 
             if (!"1".equals(articulo.getEstado()) || !Boolean.TRUE.equals(articulo.getActivo())) {
-                throw new BusinessException("El artículo " + articulo.getCodigo() + " no está activo para despachos.");
+                throw new BusinessException("Artículo inactivo: " + articulo.getCodigo());
             }
+
+            validarCantidadSegunUnidad(articulo, item.cantidad());
 
             BigDecimal saldoActual = articulo.getSaldo() != null ? articulo.getSaldo() : BigDecimal.ZERO;
             BigDecimal cantidad = item.cantidad();
 
-            // Regla estricta: No permitir saldo negativo bajo ninguna condición
             if (saldoActual.compareTo(cantidad) < 0) {
-                throw new StockInsuficienteException(
-                        "Stock insuficiente para el artículo '" + articulo.getDescripcion()
-                                + "' (Código: " + articulo.getCodigo()
-                                + "). Stock disponible: " + saldoActual
-                                + ", cantidad solicitada: " + cantidad
-                );
+                throw new StockInsuficienteException("Stock insuficiente para " + articulo.getCodigo()
+                        + ": disponible " + saldoActual + ", solicitado " + cantidad);
             }
 
             BigDecimal nuevoSaldo = saldoActual.subtract(cantidad);
             articulo.setSaldo(nuevoSaldo);
             articuloRepository.save(articulo);
 
-            // Valorización de salida con precio vigente del catálogo maestro
             BigDecimal precioVigente = articulo.getPrecio() != null ? articulo.getPrecio() : BigDecimal.ZERO;
             BigDecimal subtotal = cantidad.multiply(precioVigente).setScale(2, RoundingMode.HALF_UP);
             totalEgreso = totalEgreso.add(subtotal);
@@ -192,11 +208,23 @@ public class EgresoServiceImpl implements IEgresoService {
                     .build();
             DetalleEgreso detalleGuardado = detalleEgresoRepository.save(detalle);
 
-            // Registro en libro mayor Kardex (EGRESO)
+            TipoMovimiento tipoMovimientoKardex;
+            String documentoTipoKardex;
+            if (tipoEgreso == TipoEgreso.BAJA_DETERIORO) {
+                tipoMovimientoKardex = TipoMovimiento.BAJA_DETERIORO;
+                documentoTipoKardex = "ACTA_BAJA";
+            } else if (tipoEgreso == TipoEgreso.BAJA_VENCIMIENTO) {
+                tipoMovimientoKardex = TipoMovimiento.BAJA_VENCIMIENTO;
+                documentoTipoKardex = "ACTA_BAJA";
+            } else {
+                tipoMovimientoKardex = TipoMovimiento.EGRESO;
+                documentoTipoKardex = "EGRESO";
+            }
+
             KardexMovimiento kardex = KardexMovimiento.builder()
                     .articulo(articulo)
-                    .tipoMovimiento(TipoMovimiento.EGRESO)
-                    .documentoTipo("EGRESO")
+                    .tipoMovimiento(tipoMovimientoKardex)
+                    .documentoTipo(documentoTipoKardex)
                     .documentoId(egresoGuardado.getId())
                     .cantidadEntrada(BigDecimal.ZERO)
                     .cantidadSalida(cantidad)
@@ -206,11 +234,14 @@ public class EgresoServiceImpl implements IEgresoService {
                     .build();
             kardexMovimientoRepository.save(kardex);
 
+            String oc = ordenesCompra.get(articulo.getId());
+
             detallesResponse.add(new DetalleEgresoResponse(
                     detalleGuardado.getId(),
                     articulo.getId(),
                     articulo.getCodigo(),
                     articulo.getDescripcion(),
+                    oc,
                     detalleGuardado.getCantidad(),
                     detalleGuardado.getPrecio(),
                     subtotal,
@@ -220,58 +251,32 @@ public class EgresoServiceImpl implements IEgresoService {
             ));
         }
 
-        log.info("Egreso {} (ID={}) registrado exitosamente con {} ítems",
+        log.info("Egreso {} (ID={}) registrado con {} ítems",
                 egresoGuardado.getNumeroCompleto(), egresoGuardado.getId(), detallesResponse.size());
 
-        return new EgresoResponse(
-                egresoGuardado.getId(),
-                cliente.getId(),
-                cliente.getNombre(),
-                encargado.getId(),
-                encargado.getNombreCompleto(),
-                area.getId(),
-                area.getNombre(),
-                encargadoAlmacen.getId(),
-                encargadoAlmacen.getNombre(),
-                egresoGuardado.getAmbiente(),
-                egresoGuardado.getPrefijo(),
-                egresoGuardado.getCorrelativo(),
-                egresoGuardado.getNumeroCompleto(),
-                egresoGuardado.getFecha(),
-                egresoGuardado.getEstado(),
-                totalEgreso,
-                detallesResponse
-        );
+        return crearEgresoResponse(egresoGuardado, totalEgreso, detallesResponse);
     }
 
     @Override
     @Transactional
     public EgresoResponse anular(Integer id) {
-        log.info("Iniciando anulación de egreso con ID: {}", id);
-
-        // 1. Bloqueo Pesimista en Anulación (Anti-doble devolución)
         Egreso egreso = egresoRepository.findByIdWithLock(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Egreso no encontrado con ID: " + id));
 
-        // 2. Verificación estricta de estado
         if (!"1".equals(egreso.getEstado())) {
-            throw new BusinessException("El egreso con ID " + id + " ya se encuentra anulado o no está activo.");
+            throw new BusinessException("Egreso inactivo o ya anulado: " + id);
         }
 
-        // 3. Marcar egreso como anulado
         egreso.setEstado("0");
         egresoRepository.save(egreso);
 
-        // 4. Seguridad Estricta: Obtención del usuario autenticado
         Usuario usuarioActual = obtenerUsuarioActual();
 
-        // 5. Cargar detalles del egreso y ordenar por ID de artículo para prevenir deadlocks
         List<DetalleEgreso> detalles = detalleEgresoRepository.findByEgreso_IdOrderByIdAsc(egreso.getId());
         List<DetalleEgreso> detallesOrdenados = detalles.stream()
                 .sorted(Comparator.comparing(d -> d.getArticulo().getId()))
                 .toList();
 
-        // 6. Devolver cantidades al saldo del artículo con bloqueo pesimista y asentar en Kardex
         for (DetalleEgreso detalle : detallesOrdenados) {
             Articulo articulo = articuloRepository.findByIdWithLock(detalle.getArticulo().getId())
                     .orElseThrow(() -> new ResourceNotFoundException(
@@ -284,7 +289,6 @@ public class EgresoServiceImpl implements IEgresoService {
             articulo.setSaldo(nuevoSaldo);
             articuloRepository.save(articulo);
 
-            // Registro en Kardex con tipo REVERSO_EGRESO
             KardexMovimiento kardex = KardexMovimiento.builder()
                     .articulo(articulo)
                     .tipoMovimiento(TipoMovimiento.REVERSO_EGRESO)
@@ -299,7 +303,7 @@ public class EgresoServiceImpl implements IEgresoService {
             kardexMovimientoRepository.save(kardex);
         }
 
-        log.info("Egreso {} (ID={}) anulado exitosamente y stock restituido para {} artículos",
+        log.info("Egreso {} (ID={}) anulado y stock restituido para {} artículos",
                 egreso.getNumeroCompleto(), egreso.getId(), detalles.size());
 
         return construirEgresoResponse(egreso);
@@ -307,8 +311,15 @@ public class EgresoServiceImpl implements IEgresoService {
 
     private EgresoResponse construirEgresoResponse(Egreso egreso) {
         List<DetalleEgreso> detalles = detalleEgresoRepository.findByEgreso_IdOrderByIdAsc(egreso.getId());
-        BigDecimal totalEgreso = BigDecimal.ZERO;
+        List<Integer> articuloIds = detalles.stream()
+                .filter(d -> d.getArticulo() != null)
+                .map(d -> d.getArticulo().getId())
+                .distinct()
+                .toList();
 
+        Map<Integer, String> ordenesCompra = buscarOrdenesCompra(articuloIds);
+
+        BigDecimal totalEgreso = BigDecimal.ZERO;
         List<DetalleEgresoResponse> detallesResponse = new ArrayList<>();
         for (DetalleEgreso d : detalles) {
             BigDecimal cantidad = d.getCantidad() != null ? d.getCantidad() : BigDecimal.ZERO;
@@ -316,11 +327,15 @@ public class EgresoServiceImpl implements IEgresoService {
             BigDecimal subtotal = cantidad.multiply(precio).setScale(2, RoundingMode.HALF_UP);
             totalEgreso = totalEgreso.add(subtotal);
 
+            Integer artId = d.getArticulo() != null ? d.getArticulo().getId() : null;
+            String oc = artId != null ? ordenesCompra.get(artId) : null;
+
             detallesResponse.add(new DetalleEgresoResponse(
                     d.getId(),
-                    d.getArticulo() != null ? d.getArticulo().getId() : null,
+                    artId,
                     d.getArticulo() != null ? d.getArticulo().getCodigo() : null,
                     d.getArticulo() != null ? d.getArticulo().getDescripcion() : null,
+                    oc,
                     d.getCantidad(),
                     d.getPrecio(),
                     subtotal,
@@ -330,47 +345,65 @@ public class EgresoServiceImpl implements IEgresoService {
             ));
         }
 
-        return new EgresoResponse(
-                egreso.getId(),
-                egreso.getCliente() != null ? egreso.getCliente().getId() : null,
-                egreso.getCliente() != null ? egreso.getCliente().getNombre() : null,
-                egreso.getEncargado() != null ? egreso.getEncargado().getId() : null,
-                egreso.getEncargado() != null ? egreso.getEncargado().getNombreCompleto() : null,
-                egreso.getArea() != null ? egreso.getArea().getId() : null,
-                egreso.getArea() != null ? egreso.getArea().getNombre() : null,
-                egreso.getEncargadoAlmacen() != null ? egreso.getEncargadoAlmacen().getId() : null,
-                egreso.getEncargadoAlmacen() != null ? egreso.getEncargadoAlmacen().getNombre() : null,
-                egreso.getAmbiente(),
-                egreso.getPrefijo(),
-                egreso.getCorrelativo(),
-                egreso.getNumeroCompleto(),
-                egreso.getFecha(),
-                egreso.getEstado(),
-                totalEgreso,
-                detallesResponse
-        );
+        return crearEgresoResponse(egreso, totalEgreso, detallesResponse);
     }
 
     private EgresoResponse construirEgresoResumenResponse(Egreso egreso, BigDecimal total) {
+        return crearEgresoResponse(egreso, total, List.of());
+    }
+
+    private EgresoResponse crearEgresoResponse(Egreso egreso, BigDecimal total, List<DetalleEgresoResponse> detalles) {
         return new EgresoResponse(
                 egreso.getId(),
                 egreso.getCliente() != null ? egreso.getCliente().getId() : null,
                 egreso.getCliente() != null ? egreso.getCliente().getNombre() : null,
                 egreso.getEncargado() != null ? egreso.getEncargado().getId() : null,
                 egreso.getEncargado() != null ? egreso.getEncargado().getNombreCompleto() : null,
+                egreso.getNombreEncargadoLibre(),
                 egreso.getArea() != null ? egreso.getArea().getId() : null,
                 egreso.getArea() != null ? egreso.getArea().getNombre() : null,
                 egreso.getEncargadoAlmacen() != null ? egreso.getEncargadoAlmacen().getId() : null,
                 egreso.getEncargadoAlmacen() != null ? egreso.getEncargadoAlmacen().getNombre() : null,
+                egreso.getUsuario() != null ? egreso.getUsuario().getId() : null,
+                egreso.getUsuario() != null ? egreso.getUsuario().getNombreCompleto() : null,
                 egreso.getAmbiente(),
                 egreso.getPrefijo(),
                 egreso.getCorrelativo(),
                 egreso.getNumeroCompleto(),
+                egreso.getTipoEgreso() != null ? egreso.getTipoEgreso().name() : "DESPACHO_ORDINARIO",
                 egreso.getFecha(),
                 egreso.getEstado(),
                 total,
-                List.of()
+                detalles
         );
+    }
+
+    private Map<Integer, String> buscarOrdenesCompra(List<Integer> articuloIds) {
+        Map<Integer, String> ordenes = new HashMap<>();
+        if (articuloIds.isEmpty()) {
+            return ordenes;
+        }
+        for (Object[] row : detalleIngresoRepository.findOrdenesCompraPorArticuloIds(articuloIds)) {
+            ordenes.putIfAbsent((Integer) row[0], (String) row[1]);
+        }
+        return ordenes;
+    }
+
+    private void validarCantidadSegunUnidad(Articulo articulo, BigDecimal cantidad) {
+        if (cantidad == null || cantidad.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new BusinessException("La cantidad debe ser mayor a cero.");
+        }
+        boolean permiteDecimales = articulo.getUnidadMedida() == null
+                || Boolean.TRUE.equals(articulo.getUnidadMedida().getPermiteDecimales());
+        if (!permiteDecimales) {
+            if (cantidad.remainder(BigDecimal.ONE).compareTo(BigDecimal.ZERO) != 0) {
+                throw new BusinessException("El artículo '" + articulo.getDescripcion() + "' no permite cantidades decimales.");
+            }
+        } else {
+            if (cantidad.stripTrailingZeros().scale() > 2) {
+                throw new BusinessException("La cantidad para el artículo '" + articulo.getDescripcion() + "' no puede superar 2 decimales.");
+            }
+        }
     }
 
     private Usuario obtenerUsuarioActual() {
@@ -379,7 +412,7 @@ public class EgresoServiceImpl implements IEgresoService {
             return usuarioRepository.findById(userDetails.getId())
                     .orElseThrow(() -> new ResourceNotFoundException("Usuario autenticado no encontrado en la base de datos"));
         }
-        throw new BusinessException("Operación no permitida: No se encontró un usuario autenticado válido en la sesión de seguridad");
+        throw new BusinessException("Usuario no autenticado.");
     }
 
     private BigDecimal extraerMontoSeguro(Object valor) {

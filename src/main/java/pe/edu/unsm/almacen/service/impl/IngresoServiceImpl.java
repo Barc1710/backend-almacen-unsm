@@ -83,19 +83,21 @@ public class IngresoServiceImpl implements IIngresoService {
     @Override
     @Transactional
     public IngresoResponse registrar(IngresoCreateRequest request) {
-        log.info("Iniciando registro de ingreso para proveedor ID: {}", request.idProveedor());
-
-        // 1. Validación de Unicidad en el Lote (Anti-duplicidad)
-        Set<Integer> articulosVistos = new HashSet<>();
-        for (DetalleItemRequest item : request.detalles()) {
-            if (!articulosVistos.add(item.idArticulo())) {
-                throw new DuplicateResourceException(
-                        "El artículo con ID " + item.idArticulo() + " está duplicado en la lista de detalles del ingreso"
-                );
+        String ordenCompraLimpia = null;
+        if (request.numeroOrdenCompra() != null && !request.numeroOrdenCompra().trim().isEmpty()) {
+            ordenCompraLimpia = request.numeroOrdenCompra().trim().toUpperCase();
+            if (ingresoRepository.existsByNumeroOrdenCompraAndEstado(ordenCompraLimpia, "1")) {
+                throw new DuplicateResourceException("Orden de compra duplicada: " + ordenCompraLimpia);
             }
         }
 
-        // Ordenamiento global de bloqueos por idArticulo ascendente para prevenir deadlocks
+        Set<Integer> articulosVistos = new HashSet<>();
+        for (DetalleItemRequest item : request.detalles()) {
+            if (!articulosVistos.add(item.idArticulo())) {
+                throw new DuplicateResourceException("Artículo repetido en el ingreso: " + item.idArticulo());
+            }
+        }
+
         List<DetalleItemRequest> detallesOrdenados = request.detalles().stream()
                 .sorted(Comparator.comparing(DetalleItemRequest::idArticulo))
                 .toList();
@@ -103,9 +105,9 @@ public class IngresoServiceImpl implements IIngresoService {
         Proveedor proveedor = proveedorRepository.findById(request.idProveedor())
                 .orElseThrow(() -> new ResourceNotFoundException("Proveedor no encontrado con ID: " + request.idProveedor()));
 
-        // a) Guardar cabecera ingreso
         Ingreso ingreso = Ingreso.builder()
                 .proveedor(proveedor)
+                .numeroOrdenCompra(ordenCompraLimpia)
                 .descripcion(request.descripcion() != null ? request.descripcion().trim() : "")
                 .fecha(LocalDateTime.now())
                 .estado("1")
@@ -115,28 +117,24 @@ public class IngresoServiceImpl implements IIngresoService {
         Usuario usuarioActual = obtenerUsuarioActual();
         List<DetalleIngresoResponse> detallesResponse = new ArrayList<>();
 
-        // b) Por cada artículo: bloquear registro, sumar saldo, actualizar maestro, guardar detalle y kardex
         for (DetalleItemRequest item : detallesOrdenados) {
             Articulo articulo = articuloRepository.findByIdWithLock(item.idArticulo())
                     .orElseThrow(() -> new ResourceNotFoundException("Artículo no encontrado con ID: " + item.idArticulo()));
 
-            // 4. Validación de Vigencia
+            validarCantidadSegunUnidad(articulo, item.cantidad());
+
             if (!"1".equals(articulo.getEstado())) {
-                throw new BusinessException(
-                        "El artículo '" + articulo.getCodigo() + "' se encuentra dado de baja (inactivo) y no puede recibir ingresos."
-                );
+                throw new BusinessException("Artículo dado de baja: " + articulo.getCodigo());
             }
 
             BigDecimal saldoAnterior = articulo.getSaldo() != null ? articulo.getSaldo() : BigDecimal.ZERO;
             BigDecimal cantidad = item.cantidad();
             BigDecimal nuevoSaldo = saldoAnterior.add(cantidad);
 
-            // 3. Actualización del Maestro de Artículos (saldo y precio de reposición; se conserva la operatividad)
             articulo.setSaldo(nuevoSaldo);
             articulo.setPrecio(item.precio());
             articuloRepository.save(articulo);
 
-            // 2. Integridad en DetalleIngreso (saldo = nuevoSaldo)
             DetalleIngreso detalle = DetalleIngreso.builder()
                     .ingreso(ingresoGuardado)
                     .articulo(articulo)
@@ -148,7 +146,6 @@ public class IngresoServiceImpl implements IIngresoService {
                     .build();
             DetalleIngreso detalleGuardado = detalleIngresoRepository.save(detalle);
 
-            // Auditoría Kardex
             KardexMovimiento kardex = KardexMovimiento.builder()
                     .articulo(articulo)
                     .tipoMovimiento(TipoMovimiento.INGRESO)
@@ -175,19 +172,9 @@ public class IngresoServiceImpl implements IIngresoService {
             ));
         }
 
-        log.info("Ingreso ID={} registrado exitosamente con {} artículos", ingresoGuardado.getId(), detallesResponse.size());
+        log.info("Ingreso ID={} registrado con {} artículos", ingresoGuardado.getId(), detallesResponse.size());
 
-        return new IngresoResponse(
-                ingresoGuardado.getId(),
-                proveedor.getId(),
-                proveedor.getRazonSocial(),
-                proveedor.getRuc(),
-                ingresoGuardado.getDescripcion(),
-                ingresoGuardado.getFecha(),
-                ingresoGuardado.getEstado(),
-                calcularTotal(detallesResponse),
-                detallesResponse
-        );
+        return crearIngresoResponse(ingresoGuardado, calcularTotal(detallesResponse), detallesResponse);
     }
 
     private IngresoResponse construirIngresoResponse(Ingreso ingreso) {
@@ -206,31 +193,43 @@ public class IngresoServiceImpl implements IIngresoService {
                 ))
                 .toList();
 
-        return new IngresoResponse(
-                ingreso.getId(),
-                ingreso.getProveedor() != null ? ingreso.getProveedor().getId() : null,
-                ingreso.getProveedor() != null ? ingreso.getProveedor().getRazonSocial() : null,
-                ingreso.getProveedor() != null ? ingreso.getProveedor().getRuc() : null,
-                ingreso.getDescripcion(),
-                ingreso.getFecha(),
-                ingreso.getEstado(),
-                calcularTotal(detallesResponse),
-                detallesResponse
-        );
+        return crearIngresoResponse(ingreso, calcularTotal(detallesResponse), detallesResponse);
     }
 
     private IngresoResponse construirIngresoResumenResponse(Ingreso ingreso, BigDecimal total) {
+        return crearIngresoResponse(ingreso, total, List.of());
+    }
+
+    private IngresoResponse crearIngresoResponse(Ingreso ingreso, BigDecimal total, List<DetalleIngresoResponse> detalles) {
         return new IngresoResponse(
                 ingreso.getId(),
                 ingreso.getProveedor() != null ? ingreso.getProveedor().getId() : null,
                 ingreso.getProveedor() != null ? ingreso.getProveedor().getRazonSocial() : null,
                 ingreso.getProveedor() != null ? ingreso.getProveedor().getRuc() : null,
+                ingreso.getNumeroOrdenCompra(),
                 ingreso.getDescripcion(),
                 ingreso.getFecha(),
                 ingreso.getEstado(),
                 total,
-                List.of()
+                detalles
         );
+    }
+
+    private void validarCantidadSegunUnidad(Articulo articulo, BigDecimal cantidad) {
+        if (cantidad == null || cantidad.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new BusinessException("La cantidad debe ser mayor a cero.");
+        }
+        boolean permiteDecimales = articulo.getUnidadMedida() == null
+                || Boolean.TRUE.equals(articulo.getUnidadMedida().getPermiteDecimales());
+        if (!permiteDecimales) {
+            if (cantidad.remainder(BigDecimal.ONE).compareTo(BigDecimal.ZERO) != 0) {
+                throw new BusinessException("El artículo '" + articulo.getDescripcion() + "' no permite cantidades decimales.");
+            }
+        } else {
+            if (cantidad.stripTrailingZeros().scale() > 2) {
+                throw new BusinessException("La cantidad para el artículo '" + articulo.getDescripcion() + "' no puede superar 2 decimales.");
+            }
+        }
     }
 
     private BigDecimal calcularTotal(List<DetalleIngresoResponse> detalles) {
@@ -245,7 +244,7 @@ public class IngresoServiceImpl implements IIngresoService {
             return usuarioRepository.findById(userDetails.getId())
                     .orElseThrow(() -> new ResourceNotFoundException("Usuario autenticado no encontrado en base de datos"));
         }
-        throw new AccessDeniedException("Operación denegada: no existe identidad autenticada para auditar el ingreso");
+        throw new AccessDeniedException("Usuario no autenticado.");
     }
 
     private BigDecimal extraerMontoSeguro(Object valor) {

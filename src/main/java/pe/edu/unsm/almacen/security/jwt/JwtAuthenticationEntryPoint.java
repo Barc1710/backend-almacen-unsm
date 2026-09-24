@@ -28,7 +28,7 @@ public class JwtAuthenticationEntryPoint implements AuthenticationEntryPoint {
 
         ApiResponse<Void> apiResponse = new ApiResponse<>(
                 false,
-                "Acceso no autorizado: se requiere autenticación para acceder a este recurso.",
+                "Debes iniciar sesión.",
                 null
         );
 

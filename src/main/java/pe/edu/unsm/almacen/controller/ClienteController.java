@@ -27,61 +27,61 @@ import pe.edu.unsm.almacen.service.IClienteService;
 @RestController
 @RequestMapping("/clientes")
 @RequiredArgsConstructor
-@Tag(name = "Clientes", description = "Gestión del catálogo de clientes y dependencias solicitantes")
+@Tag(name = "Clientes")
 public class ClienteController {
 
     private final IClienteService clienteService;
 
     @GetMapping
-    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ADMIN', 'OPERADOR')")
-    @Operation(summary = "Listar clientes paginados", description = "Retorna un listado paginado con filtro de búsqueda opcional por nombre, DNI o correo")
+    @PreAuthorize("@moduloAccess.canRead(authentication, 'CLIENTES', 'EGRESOS')")
+    @Operation(summary = "Listar clientes paginados")
     public ResponseEntity<ApiResponse<PageResponse<ClienteResponse>>> listar(
             @RequestParam(name = "filtro", required = false) String filtro,
             Pageable pageable) {
         PageResponse<ClienteResponse> response = clienteService.listarPaginado(filtro, pageable);
-        return ResponseEntity.ok(new ApiResponse<>(true, "Clientes recuperados exitosamente", response));
+        return ResponseEntity.ok(new ApiResponse<>(true, "Clientes listados", response));
     }
 
     @GetMapping("/activos")
-    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ADMIN', 'OPERADOR')")
-    @Operation(summary = "Listar clientes activos", description = "Retorna todos los clientes activos para combos y selección")
+    @PreAuthorize("@moduloAccess.canRead(authentication, 'CLIENTES', 'EGRESOS')")
+    @Operation(summary = "Listar clientes activos")
     public ResponseEntity<ApiResponse<List<ClienteResponse>>> listarActivos() {
         List<ClienteResponse> response = clienteService.listarActivos();
-        return ResponseEntity.ok(new ApiResponse<>(true, "Clientes activos recuperados exitosamente", response));
+        return ResponseEntity.ok(new ApiResponse<>(true, "Clientes activos listados", response));
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ADMIN', 'OPERADOR')")
-    @Operation(summary = "Obtener cliente por ID", description = "Retorna el detalle de un cliente específico")
+    @PreAuthorize("@moduloAccess.canRead(authentication, 'CLIENTES', 'EGRESOS')")
+    @Operation(summary = "Obtener cliente por ID")
     public ResponseEntity<ApiResponse<ClienteResponse>> obtenerPorId(@PathVariable("id") Integer id) {
         ClienteResponse response = clienteService.obtenerPorId(id);
-        return ResponseEntity.ok(new ApiResponse<>(true, "Cliente encontrado exitosamente", response));
+        return ResponseEntity.ok(new ApiResponse<>(true, "Cliente obtenido", response));
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ADMIN', 'OPERADOR')")
-    @Operation(summary = "Crear nuevo cliente", description = "Registra un nuevo cliente con validaciones de formato")
+    @PreAuthorize("@moduloAccess.hasAccess(authentication, 'CLIENTES')")
+    @Operation(summary = "Crear cliente")
     public ResponseEntity<ApiResponse<ClienteResponse>> crear(@Valid @RequestBody ClienteRequest request) {
         ClienteResponse response = clienteService.crear(request);
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(new ApiResponse<>(true, "Cliente creado exitosamente", response));
+                .body(new ApiResponse<>(true, "Cliente creado", response));
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ADMIN', 'OPERADOR')")
-    @Operation(summary = "Actualizar cliente", description = "Actualiza los datos de un cliente existente")
+    @PreAuthorize("@moduloAccess.hasAccess(authentication, 'CLIENTES')")
+    @Operation(summary = "Actualizar cliente")
     public ResponseEntity<ApiResponse<ClienteResponse>> actualizar(
             @PathVariable("id") Integer id,
             @Valid @RequestBody ClienteRequest request) {
         ClienteResponse response = clienteService.actualizar(id, request);
-        return ResponseEntity.ok(new ApiResponse<>(true, "Cliente actualizado exitosamente", response));
+        return ResponseEntity.ok(new ApiResponse<>(true, "Cliente actualizado", response));
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ADMIN')")
-    @Operation(summary = "Borrado lógico de cliente", description = "Desactiva un cliente cambiando su estado a '0'")
+    @PreAuthorize("hasRole('ADMINISTRADOR') and @moduloAccess.hasAccess(authentication, 'CLIENTES')")
+    @Operation(summary = "Desactivar cliente")
     public ResponseEntity<ApiResponse<Void>> eliminar(@PathVariable("id") Integer id) {
         clienteService.cambiarEstado(id, "0");
-        return ResponseEntity.ok(new ApiResponse<>(true, "Cliente desactivado exitosamente", null));
+        return ResponseEntity.ok(new ApiResponse<>(true, "Cliente desactivado", null));
     }
 }

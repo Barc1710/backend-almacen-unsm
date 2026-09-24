@@ -11,6 +11,7 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import java.time.LocalDateTime;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -20,7 +21,8 @@ import lombok.Setter;
 import org.hibernate.annotations.ColumnDefault;
 
 @Entity
-@Table(name = "ingreso")
+@Table(name = "ingreso",
+        uniqueConstraints = @UniqueConstraint(name = "uq_ingreso_orden_compra", columnNames = {"numero_orden_compra"}))
 @Getter
 @Setter
 @NoArgsConstructor
@@ -37,6 +39,9 @@ public class Ingreso {
     @JoinColumn(name = "id_proveedor", referencedColumnName = "id", nullable = false,
             foreignKey = @ForeignKey(name = "fk_ingreso_proveedor"))
     private Proveedor proveedor;
+
+    @Column(name = "numero_orden_compra", nullable = true, length = 50)
+    private String numeroOrdenCompra;
 
     @Column(name = "descripcion", nullable = true, length = 255)
     private String descripcion;

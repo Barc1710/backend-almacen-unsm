@@ -27,61 +27,61 @@ import pe.edu.unsm.almacen.service.IMarcaService;
 @RestController
 @RequestMapping("/marcas")
 @RequiredArgsConstructor
-@Tag(name = "Marcas", description = "Gestión del catálogo de marcas de artículos")
+@Tag(name = "Marcas")
 public class MarcaController {
 
     private final IMarcaService marcaService;
 
     @GetMapping
-    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ADMIN', 'OPERADOR')")
-    @Operation(summary = "Listar marcas paginadas", description = "Retorna un listado paginado con filtro de búsqueda opcional por nombre")
+    @PreAuthorize("@moduloAccess.canRead(authentication, 'MARCAS', 'ARTICULOS')")
+    @Operation(summary = "Listar marcas paginadas")
     public ResponseEntity<ApiResponse<PageResponse<MarcaResponse>>> listar(
             @RequestParam(name = "filtro", required = false) String filtro,
             Pageable pageable) {
         PageResponse<MarcaResponse> response = marcaService.listarPaginado(filtro, pageable);
-        return ResponseEntity.ok(new ApiResponse<>(true, "Marcas recuperadas exitosamente", response));
+        return ResponseEntity.ok(new ApiResponse<>(true, "Marcas listadas", response));
     }
 
     @GetMapping("/activos")
-    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ADMIN', 'OPERADOR')")
-    @Operation(summary = "Listar marcas activas", description = "Retorna todas las marcas activas para combos y selección")
+    @PreAuthorize("@moduloAccess.canRead(authentication, 'MARCAS', 'ARTICULOS')")
+    @Operation(summary = "Listar marcas activas")
     public ResponseEntity<ApiResponse<List<MarcaResponse>>> listarActivos() {
         List<MarcaResponse> response = marcaService.listarActivos();
-        return ResponseEntity.ok(new ApiResponse<>(true, "Marcas activas recuperadas exitosamente", response));
+        return ResponseEntity.ok(new ApiResponse<>(true, "Marcas activas listadas", response));
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ADMIN', 'OPERADOR')")
-    @Operation(summary = "Obtener marca por ID", description = "Retorna el detalle de una marca específica")
+    @PreAuthorize("@moduloAccess.canRead(authentication, 'MARCAS', 'ARTICULOS')")
+    @Operation(summary = "Obtener marca por ID")
     public ResponseEntity<ApiResponse<MarcaResponse>> obtenerPorId(@PathVariable("id") Integer id) {
         MarcaResponse response = marcaService.obtenerPorId(id);
-        return ResponseEntity.ok(new ApiResponse<>(true, "Marca encontrada exitosamente", response));
+        return ResponseEntity.ok(new ApiResponse<>(true, "Marca obtenida", response));
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ADMIN', 'OPERADOR')")
-    @Operation(summary = "Crear nueva marca", description = "Registra una nueva marca en el sistema")
+    @PreAuthorize("@moduloAccess.hasAccess(authentication, 'MARCAS')")
+    @Operation(summary = "Crear marca")
     public ResponseEntity<ApiResponse<MarcaResponse>> crear(@Valid @RequestBody MarcaRequest request) {
         MarcaResponse response = marcaService.crear(request);
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(new ApiResponse<>(true, "Marca creada exitosamente", response));
+                .body(new ApiResponse<>(true, "Marca creada", response));
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ADMIN', 'OPERADOR')")
-    @Operation(summary = "Actualizar marca", description = "Actualiza los datos de una marca existente")
+    @PreAuthorize("@moduloAccess.hasAccess(authentication, 'MARCAS')")
+    @Operation(summary = "Actualizar marca")
     public ResponseEntity<ApiResponse<MarcaResponse>> actualizar(
             @PathVariable("id") Integer id,
             @Valid @RequestBody MarcaRequest request) {
         MarcaResponse response = marcaService.actualizar(id, request);
-        return ResponseEntity.ok(new ApiResponse<>(true, "Marca actualizada exitosamente", response));
+        return ResponseEntity.ok(new ApiResponse<>(true, "Marca actualizada", response));
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'ADMIN')")
-    @Operation(summary = "Borrado lógico de marca", description = "Desactiva una marca cambiando su estado a '0'")
+    @PreAuthorize("hasRole('ADMINISTRADOR') and @moduloAccess.hasAccess(authentication, 'MARCAS')")
+    @Operation(summary = "Desactivar marca")
     public ResponseEntity<ApiResponse<Void>> eliminar(@PathVariable("id") Integer id) {
         marcaService.cambiarEstado(id, "0");
-        return ResponseEntity.ok(new ApiResponse<>(true, "Marca desactivada exitosamente", null));
+        return ResponseEntity.ok(new ApiResponse<>(true, "Marca desactivada", null));
     }
 }

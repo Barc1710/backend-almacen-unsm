@@ -49,6 +49,8 @@ public class EncargadoAlmacenServiceImpl implements IEncargadoAlmacenService {
     public EncargadoAlmacenResponse crear(EncargadoAlmacenRequest request) {
         EncargadoAlmacen encargadoAlmacen = EncargadoAlmacen.builder()
                 .nombre(request.nombre().trim())
+                .esTitular(Boolean.TRUE.equals(request.esTitular()))
+                .cargo(request.cargo() != null ? request.cargo().trim() : "Encargado de Almacén")
                 .estado("1")
                 .build();
         return mapToResponse(encargadoAlmacenRepository.save(encargadoAlmacen));
@@ -61,6 +63,12 @@ public class EncargadoAlmacenServiceImpl implements IEncargadoAlmacenService {
                 .orElseThrow(() -> new ResourceNotFoundException("Encargado de almacén no encontrado con id: " + id));
 
         encargadoAlmacen.setNombre(request.nombre().trim());
+        if (request.esTitular() != null) {
+            encargadoAlmacen.setEsTitular(request.esTitular());
+        }
+        if (request.cargo() != null) {
+            encargadoAlmacen.setCargo(request.cargo().trim());
+        }
         return mapToResponse(encargadoAlmacenRepository.save(encargadoAlmacen));
     }
 
@@ -74,6 +82,12 @@ public class EncargadoAlmacenServiceImpl implements IEncargadoAlmacenService {
     }
 
     private EncargadoAlmacenResponse mapToResponse(EncargadoAlmacen encargadoAlmacen) {
-        return new EncargadoAlmacenResponse(encargadoAlmacen.getId(), encargadoAlmacen.getNombre(), encargadoAlmacen.getEstado());
+        return new EncargadoAlmacenResponse(
+                encargadoAlmacen.getId(),
+                encargadoAlmacen.getNombre(),
+                encargadoAlmacen.getEstado(),
+                encargadoAlmacen.getEsTitular(),
+                encargadoAlmacen.getCargo()
+        );
     }
 }
