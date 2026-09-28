@@ -10,6 +10,7 @@ import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -31,7 +32,7 @@ import pe.edu.unsm.almacen.service.IUsuarioService;
 @RequestMapping("/usuarios")
 @RequiredArgsConstructor
 @Tag(name = "Usuarios")
-@PreAuthorize("hasRole('ADMINISTRADOR')")
+@PreAuthorize("hasRole('ADMINISTRADOR') or @moduloAccess.hasAccess(authentication, 'USUARIOS')")
 public class UsuarioController {
 
     private final IUsuarioService usuarioService;
@@ -70,6 +71,13 @@ public class UsuarioController {
     ) {
         UsuarioResponse response = usuarioService.actualizar(id, request);
         return ResponseEntity.ok(ApiResponse.ok("Usuario actualizado", response));
+    }
+
+    @DeleteMapping("/{id}")
+    @Operation(summary = "Desactivar usuario")
+    public ResponseEntity<ApiResponse<Void>> desactivar(@PathVariable Integer id) {
+        usuarioService.desactivar(id);
+        return ResponseEntity.ok(ApiResponse.ok("Usuario desactivado exitosamente", null));
     }
 
     @PatchMapping("/{id}/reset-clave")

@@ -34,7 +34,7 @@ public class UnidadMedidaController {
     private final IUnidadMedidaService unidadMedidaService;
 
     @GetMapping
-    @PreAuthorize("@moduloAccess.canRead(authentication, 'UNIDADES_MEDIDA', 'ARTICULOS')")
+    @PreAuthorize("@moduloAccess.hasAccess(authentication, 'INVENTARIO')")
     @Operation(summary = "Listar unidades de medida paginadas")
     public ResponseEntity<ApiResponse<PageResponse<UnidadMedidaResponse>>> listarPaginado(
             @RequestParam(name = "filtro", required = false) String filtro,
@@ -44,7 +44,7 @@ public class UnidadMedidaController {
     }
 
     @GetMapping("/activas")
-    @PreAuthorize("@moduloAccess.canRead(authentication, 'UNIDADES_MEDIDA', 'ARTICULOS')")
+    @PreAuthorize("@moduloAccess.hasAccess(authentication, 'INVENTARIO')")
     @Operation(summary = "Listar unidades de medida activas")
     public ResponseEntity<ApiResponse<List<UnidadMedidaResponse>>> listarActivas() {
         List<UnidadMedidaResponse> response = unidadMedidaService.listarActivos();
@@ -52,7 +52,7 @@ public class UnidadMedidaController {
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("@moduloAccess.canRead(authentication, 'UNIDADES_MEDIDA', 'ARTICULOS')")
+    @PreAuthorize("@moduloAccess.hasAccess(authentication, 'INVENTARIO')")
     @Operation(summary = "Obtener unidad de medida por ID")
     public ResponseEntity<ApiResponse<UnidadMedidaResponse>> obtenerPorId(@PathVariable("id") Integer id) {
         UnidadMedidaResponse response = unidadMedidaService.obtenerPorId(id);
@@ -60,7 +60,7 @@ public class UnidadMedidaController {
     }
 
     @PostMapping
-    @PreAuthorize("@moduloAccess.hasAccess(authentication, 'UNIDADES_MEDIDA')")
+    @PreAuthorize("@moduloAccess.hasAccess(authentication, 'INVENTARIO')")
     @Operation(summary = "Crear unidad de medida")
     public ResponseEntity<ApiResponse<UnidadMedidaResponse>> crear(@Valid @RequestBody UnidadMedidaRequest request) {
         UnidadMedidaResponse response = unidadMedidaService.crear(request);
@@ -69,7 +69,7 @@ public class UnidadMedidaController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("@moduloAccess.hasAccess(authentication, 'UNIDADES_MEDIDA')")
+    @PreAuthorize("@moduloAccess.hasAccess(authentication, 'INVENTARIO')")
     @Operation(summary = "Actualizar unidad de medida")
     public ResponseEntity<ApiResponse<UnidadMedidaResponse>> actualizar(
             @PathVariable("id") Integer id,
@@ -79,7 +79,7 @@ public class UnidadMedidaController {
     }
 
     @PatchMapping("/{id}/estado")
-    @PreAuthorize("hasRole('ADMINISTRADOR') and @moduloAccess.hasAccess(authentication, 'UNIDADES_MEDIDA')")
+    @PreAuthorize("hasRole('ADMINISTRADOR') and @moduloAccess.hasAccess(authentication, 'INVENTARIO')")
     @Operation(summary = "Cambiar estado de unidad de medida")
     public ResponseEntity<ApiResponse<Void>> cambiarEstado(
             @PathVariable("id") Integer id,

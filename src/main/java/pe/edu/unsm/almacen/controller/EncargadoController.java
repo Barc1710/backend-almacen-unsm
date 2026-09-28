@@ -33,7 +33,7 @@ public class EncargadoController {
     private final IEncargadoService encargadoService;
 
     @GetMapping
-    @PreAuthorize("@moduloAccess.canRead(authentication, 'ENCARGADOS', 'EGRESOS')")
+    @PreAuthorize("@moduloAccess.hasAccess(authentication, 'EGRESOS')")
     @Operation(summary = "Listar encargados paginados")
     public ResponseEntity<ApiResponse<PageResponse<EncargadoResponse>>> listar(
             @RequestParam(name = "filtro", required = false) String filtro,
@@ -43,7 +43,7 @@ public class EncargadoController {
     }
 
     @GetMapping("/activos")
-    @PreAuthorize("@moduloAccess.canRead(authentication, 'ENCARGADOS', 'EGRESOS')")
+    @PreAuthorize("@moduloAccess.hasAccess(authentication, 'EGRESOS')")
     @Operation(summary = "Listar encargados activos")
     public ResponseEntity<ApiResponse<List<EncargadoResponse>>> listarActivos() {
         List<EncargadoResponse> response = encargadoService.listarActivos();
@@ -51,7 +51,7 @@ public class EncargadoController {
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("@moduloAccess.canRead(authentication, 'ENCARGADOS', 'EGRESOS')")
+    @PreAuthorize("@moduloAccess.hasAccess(authentication, 'EGRESOS')")
     @Operation(summary = "Obtener encargado por ID")
     public ResponseEntity<ApiResponse<EncargadoResponse>> obtenerPorId(@PathVariable("id") Integer id) {
         EncargadoResponse response = encargadoService.obtenerPorId(id);
@@ -59,7 +59,7 @@ public class EncargadoController {
     }
 
     @PostMapping
-    @PreAuthorize("@moduloAccess.hasAccess(authentication, 'ENCARGADOS')")
+    @PreAuthorize("@moduloAccess.hasAccess(authentication, 'EGRESOS')")
     @Operation(summary = "Crear encargado")
     public ResponseEntity<ApiResponse<EncargadoResponse>> crear(@Valid @RequestBody EncargadoRequest request) {
         EncargadoResponse response = encargadoService.crear(request);
@@ -68,7 +68,7 @@ public class EncargadoController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("@moduloAccess.hasAccess(authentication, 'ENCARGADOS')")
+    @PreAuthorize("@moduloAccess.hasAccess(authentication, 'EGRESOS')")
     @Operation(summary = "Actualizar encargado")
     public ResponseEntity<ApiResponse<EncargadoResponse>> actualizar(
             @PathVariable("id") Integer id,
@@ -78,7 +78,7 @@ public class EncargadoController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ADMINISTRADOR') and @moduloAccess.hasAccess(authentication, 'ENCARGADOS')")
+    @PreAuthorize("hasRole('ADMINISTRADOR') and @moduloAccess.hasAccess(authentication, 'EGRESOS')")
     @Operation(summary = "Desactivar encargado")
     public ResponseEntity<ApiResponse<Void>> eliminar(@PathVariable("id") Integer id) {
         encargadoService.cambiarEstado(id, "0");

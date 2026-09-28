@@ -14,6 +14,7 @@ import pe.edu.unsm.almacen.dto.request.UsuarioUpdateRequest;
 import pe.edu.unsm.almacen.dto.response.UsuarioResponse;
 import pe.edu.unsm.almacen.entity.Perfil;
 import pe.edu.unsm.almacen.entity.Usuario;
+import pe.edu.unsm.almacen.exception.BusinessException;
 import pe.edu.unsm.almacen.exception.DuplicateResourceException;
 import pe.edu.unsm.almacen.exception.ResourceNotFoundException;
 import pe.edu.unsm.almacen.repository.PerfilRepository;
@@ -55,6 +56,10 @@ public class UsuarioServiceImpl implements IUsuarioService {
         Perfil perfil = perfilRepository.findById(request.idPerfil())
                 .orElseThrow(() -> new ResourceNotFoundException("Perfil no encontrado con id: " + request.idPerfil()));
 
+        if (perfil.getEstado() != null && !Integer.valueOf(1).equals(perfil.getEstado())) {
+            throw new BusinessException("No se puede asignar un perfil inactivo a un usuario");
+        }
+
         Usuario usuario = Usuario.builder()
                 .usuario(username)
                 .clave(passwordEncoder.encode(request.clave()))
@@ -79,8 +84,22 @@ public class UsuarioServiceImpl implements IUsuarioService {
         Usuario usuario = usuarioRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado con id: " + id));
 
+        boolean esAdminPrincipal = Integer.valueOf(1).equals(id) || "admin".equalsIgnoreCase(usuario.getUsuario().trim());
+        if (esAdminPrincipal) {
+            if ("0".equals(request.estado())) {
+                throw new BusinessException("El usuario administrador principal no puede ser desactivado");
+            }
+            if (!Integer.valueOf(1).equals(request.idPerfil())) {
+                throw new BusinessException("El usuario administrador principal no puede cambiar de perfil");
+            }
+        }
+
         Perfil perfil = perfilRepository.findById(request.idPerfil())
                 .orElseThrow(() -> new ResourceNotFoundException("Perfil no encontrado con id: " + request.idPerfil()));
+
+        if (perfil.getEstado() != null && !Integer.valueOf(1).equals(perfil.getEstado())) {
+            throw new BusinessException("No se puede asignar un perfil inactivo a un usuario");
+        }
 
         usuario.setNombre(request.nombre().trim());
         usuario.setApellido(request.apellido().trim());
@@ -96,6 +115,21 @@ public class UsuarioServiceImpl implements IUsuarioService {
         Usuario actualizado = usuarioRepository.save(usuario);
         log.info("Usuario '{}' actualizado (id: {})", actualizado.getUsuario(), actualizado.getIdUsuario());
         return mapToResponse(actualizado);
+    }
+
+    @Override
+    @Transactional
+    public void desactivar(Integer id) {
+        Usuario usuario = usuarioRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado con id: " + id));
+
+        if (Integer.valueOf(1).equals(id) || "admin".equalsIgnoreCase(usuario.getUsuario().trim())) {
+            throw new BusinessException("El usuario administrador principal no puede ser desactivado");
+        }
+
+        usuario.setEstado("0");
+        usuarioRepository.save(usuario);
+        log.info("Usuario '{}' desactivado (id: {})", usuario.getUsuario(), id);
     }
 
     @Override

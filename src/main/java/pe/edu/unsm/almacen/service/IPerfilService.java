@@ -14,6 +14,10 @@ public interface IPerfilService {
 
     PerfilResponse crear(PerfilRequest request);
 
+    PerfilResponse actualizar(Integer id, PerfilRequest request);
+
+    void desactivar(Integer id);
+
     PerfilPermisosResponse obtenerModulosPorPerfil(Integer idPerfil);
 
     void actualizarPermisos(Integer idPerfil, AsignarPermisosRequest request);

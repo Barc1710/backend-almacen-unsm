@@ -13,4 +13,7 @@ public interface PerfilRepository extends JpaRepository<Perfil, Integer> {
 
     @Query("SELECT CASE WHEN COUNT(p) > 0 THEN true ELSE false END FROM Perfil p WHERE LOWER(p.nombrePerfil) = LOWER(:nombre)")
     boolean existsByNombre(@Param("nombre") String nombre);
+
+    @Query("SELECT CASE WHEN COUNT(p) > 0 THEN true ELSE false END FROM Perfil p WHERE LOWER(p.nombrePerfil) = LOWER(:nombre) AND p.idPerfil <> :id")
+    boolean existsByNombreAndIdNot(@Param("nombre") String nombre, @Param("id") Integer id);
 }

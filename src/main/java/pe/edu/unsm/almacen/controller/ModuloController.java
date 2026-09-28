@@ -17,7 +17,7 @@ import pe.edu.unsm.almacen.service.IModuloService;
 @RequestMapping("/modulos")
 @RequiredArgsConstructor
 @Tag(name = "Módulos")
-@PreAuthorize("hasRole('ADMINISTRADOR')")
+@PreAuthorize("hasRole('ADMINISTRADOR') or @moduloAccess.hasAccess(authentication, 'PERFILES')")
 public class ModuloController {
 
     private final IModuloService moduloService;

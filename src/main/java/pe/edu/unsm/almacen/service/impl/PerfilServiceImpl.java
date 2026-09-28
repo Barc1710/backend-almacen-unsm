@@ -20,6 +20,7 @@ import pe.edu.unsm.almacen.exception.ResourceNotFoundException;
 import pe.edu.unsm.almacen.repository.ModuloRepository;
 import pe.edu.unsm.almacen.repository.PerfilRepository;
 import pe.edu.unsm.almacen.repository.PermisoRepository;
+import pe.edu.unsm.almacen.repository.UsuarioRepository;
 import pe.edu.unsm.almacen.service.IPerfilService;
 
 @Service
@@ -30,6 +31,7 @@ public class PerfilServiceImpl implements IPerfilService {
     private final PerfilRepository perfilRepository;
     private final ModuloRepository moduloRepository;
     private final PermisoRepository permisoRepository;
+    private final UsuarioRepository usuarioRepository;
 
     @Override
     @Transactional(readOnly = true)
@@ -64,6 +66,48 @@ public class PerfilServiceImpl implements IPerfilService {
         Perfil guardado = perfilRepository.save(perfil);
         log.info("Perfil '{}' creado con id: {}", guardado.getNombrePerfil(), guardado.getIdPerfil());
         return mapToResponse(guardado);
+    }
+
+    @Override
+    @Transactional
+    public PerfilResponse actualizar(Integer id, PerfilRequest request) {
+        Perfil perfil = perfilRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Perfil no encontrado con id: " + id));
+
+        if (esAdministrador(perfil)) {
+            throw new BusinessException("El perfil administrador del sistema no puede ser modificado");
+        }
+
+        String nuevoNombre = request.nombre().trim();
+        if (perfilRepository.existsByNombreAndIdNot(nuevoNombre, id)) {
+            throw new DuplicateResourceException("Perfil duplicado: ya existe un perfil con el nombre " + nuevoNombre);
+        }
+
+        perfil.setNombrePerfil(nuevoNombre);
+        Perfil guardado = perfilRepository.save(perfil);
+        log.info("Perfil id {} actualizado con nombre '{}'", id, guardado.getNombrePerfil());
+        return mapToResponse(guardado);
+    }
+
+    @Override
+    @Transactional
+    public void desactivar(Integer id) {
+        Perfil perfil = perfilRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Perfil no encontrado con id: " + id));
+
+        if (esAdministrador(perfil)) {
+            throw new BusinessException("El perfil administrador es del sistema y no puede ser desactivado");
+        }
+
+        long activos = usuarioRepository.countByPerfil_IdPerfilAndEstado(id, "1");
+        if (activos > 0) {
+            throw new BusinessException("No se puede desactivar el perfil '" + perfil.getNombrePerfil()
+                    + "' porque tiene " + activos + " usuario(s) activo(s) asignado(s). Primero debes reasignar a dichos usuarios o desactivarlos.");
+        }
+
+        perfil.setEstadoPerfil(0);
+        perfilRepository.save(perfil);
+        log.info("Perfil '{}' (id: {}) desactivado", perfil.getNombrePerfil(), id);
     }
 
     @Override
@@ -134,8 +178,10 @@ public class PerfilServiceImpl implements IPerfilService {
     }
 
     private boolean esAdministrador(Perfil perfil) {
-        return Integer.valueOf(1).equals(perfil.getIdPerfil())
-                && "ADMINISTRADOR".equalsIgnoreCase(perfil.getNombrePerfil().trim());
+        return perfil != null && (
+                Integer.valueOf(1).equals(perfil.getIdPerfil())
+                || (perfil.getNombrePerfil() != null && "ADMINISTRADOR".equalsIgnoreCase(perfil.getNombrePerfil().trim()))
+        );
     }
 
     private ModuloResponse mapModuloToResponse(Modulo m) {

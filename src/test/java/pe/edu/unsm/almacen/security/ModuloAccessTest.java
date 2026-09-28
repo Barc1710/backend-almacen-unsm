@@ -49,7 +49,7 @@ class ModuloAccessTest {
     void moduloDeLecturaInactivoBloqueaTambienElAccesoDesdeOtroModulo() {
         Authentication sesion = sesion(7, "ALMACENERO", "ROLE_PERFIL");
 
-        assertFalse(access.canRead(sesion, "ARTICULOS", "INGRESOS"));
+        assertFalse(access.canRead(sesion, "INVENTARIO", "INGRESOS"));
         verifyNoInteractions(permisos, usuarios);
     }
 
@@ -57,11 +57,11 @@ class ModuloAccessTest {
     void moduloOperativoPermiteLeerSuCatalogoAuxiliarActivo() {
         Authentication sesion = sesion(7, "ALMACENERO", "ROLE_PERFIL");
         usuario(7, "ALMACENERO");
-        when(modulos.existsByCodigoAndEstado("ARTICULOS", 1)).thenReturn(true);
+        when(modulos.existsByCodigoAndEstado("INVENTARIO", 1)).thenReturn(true);
         when(modulos.existsByCodigoAndEstado("INGRESOS", 1)).thenReturn(true);
         when(permisos.existsActiveByPerfilAndCodigo(7, "INGRESOS")).thenReturn(true);
 
-        assertTrue(access.canRead(sesion, "ARTICULOS", "INGRESOS"));
+        assertTrue(access.canRead(sesion, "INVENTARIO", "INGRESOS"));
     }
 
     @Test

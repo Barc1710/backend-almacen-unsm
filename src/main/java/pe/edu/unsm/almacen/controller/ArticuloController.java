@@ -36,7 +36,7 @@ public class ArticuloController {
     private final IArticuloService articuloService;
 
     @GetMapping
-    @PreAuthorize("@moduloAccess.canRead(authentication, 'ARTICULOS', 'INGRESOS', 'EGRESOS', 'KARDEX')")
+    @PreAuthorize("@moduloAccess.canRead(authentication, 'INVENTARIO', 'INGRESOS', 'EGRESOS', 'KARDEX')")
     @Operation(summary = "Listar artículos paginados")
     public ResponseEntity<ApiResponse<PageResponse<ArticuloResponse>>> listar(
             @RequestParam(name = "filtro", required = false) String filtro,
@@ -50,7 +50,7 @@ public class ArticuloController {
     }
 
     @GetMapping("/buscar")
-    @PreAuthorize("@moduloAccess.canRead(authentication, 'ARTICULOS', 'INGRESOS', 'EGRESOS', 'KARDEX')")
+    @PreAuthorize("@moduloAccess.canRead(authentication, 'INVENTARIO', 'INGRESOS', 'EGRESOS', 'KARDEX')")
     @Operation(summary = "Buscar artículos")
     public ResponseEntity<ApiResponse<List<ArticuloResumenResponse>>> buscarPredictivo(
             @RequestParam(name = "q", required = false) String q,
@@ -60,7 +60,7 @@ public class ArticuloController {
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("@moduloAccess.canRead(authentication, 'ARTICULOS', 'INGRESOS', 'EGRESOS', 'KARDEX')")
+    @PreAuthorize("@moduloAccess.canRead(authentication, 'INVENTARIO', 'INGRESOS', 'EGRESOS', 'KARDEX')")
     @Operation(summary = "Obtener artículo por ID")
     public ResponseEntity<ApiResponse<ArticuloResponse>> obtenerPorId(@PathVariable("id") Integer id) {
         ArticuloResponse response = articuloService.obtenerPorId(id);
@@ -68,7 +68,7 @@ public class ArticuloController {
     }
 
     @PostMapping
-    @PreAuthorize("@moduloAccess.hasAccess(authentication, 'ARTICULOS')")
+    @PreAuthorize("@moduloAccess.hasAccess(authentication, 'INVENTARIO')")
     @Operation(summary = "Crear artículo")
     public ResponseEntity<ApiResponse<ArticuloResponse>> crear(@Valid @RequestBody ArticuloCreateRequest request) {
         ArticuloResponse response = articuloService.crear(request);
@@ -77,7 +77,7 @@ public class ArticuloController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("@moduloAccess.hasAccess(authentication, 'ARTICULOS')")
+    @PreAuthorize("@moduloAccess.hasAccess(authentication, 'INVENTARIO')")
     @Operation(summary = "Actualizar artículo")
     public ResponseEntity<ApiResponse<ArticuloResponse>> actualizar(
             @PathVariable("id") Integer id,
@@ -87,7 +87,7 @@ public class ArticuloController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ADMINISTRADOR') and @moduloAccess.hasAccess(authentication, 'ARTICULOS')")
+    @PreAuthorize("hasRole('ADMINISTRADOR') and @moduloAccess.hasAccess(authentication, 'INVENTARIO')")
     @Operation(summary = "Desactivar artículo")
     public ResponseEntity<ApiResponse<Void>> eliminar(@PathVariable("id") Integer id) {
         articuloService.cambiarEstado(id, "0");
@@ -95,7 +95,7 @@ public class ArticuloController {
     }
 
     @PatchMapping("/{id}/toggle-activo")
-    @PreAuthorize("hasRole('ADMINISTRADOR') and @moduloAccess.hasAccess(authentication, 'ARTICULOS')")
+    @PreAuthorize("hasRole('ADMINISTRADOR') and @moduloAccess.hasAccess(authentication, 'INVENTARIO')")
     @Operation(summary = "Cambiar operatividad del artículo")
     public ResponseEntity<ApiResponse<ArticuloResponse>> toggleActivo(@PathVariable("id") Integer id) {
         ArticuloResponse response = articuloService.toggleActivo(id);

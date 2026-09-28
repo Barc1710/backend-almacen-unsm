@@ -33,7 +33,7 @@ public class MarcaController {
     private final IMarcaService marcaService;
 
     @GetMapping
-    @PreAuthorize("@moduloAccess.canRead(authentication, 'MARCAS', 'ARTICULOS')")
+    @PreAuthorize("@moduloAccess.hasAccess(authentication, 'INVENTARIO')")
     @Operation(summary = "Listar marcas paginadas")
     public ResponseEntity<ApiResponse<PageResponse<MarcaResponse>>> listar(
             @RequestParam(name = "filtro", required = false) String filtro,
@@ -43,7 +43,7 @@ public class MarcaController {
     }
 
     @GetMapping("/activos")
-    @PreAuthorize("@moduloAccess.canRead(authentication, 'MARCAS', 'ARTICULOS')")
+    @PreAuthorize("@moduloAccess.hasAccess(authentication, 'INVENTARIO')")
     @Operation(summary = "Listar marcas activas")
     public ResponseEntity<ApiResponse<List<MarcaResponse>>> listarActivos() {
         List<MarcaResponse> response = marcaService.listarActivos();
@@ -51,7 +51,7 @@ public class MarcaController {
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("@moduloAccess.canRead(authentication, 'MARCAS', 'ARTICULOS')")
+    @PreAuthorize("@moduloAccess.hasAccess(authentication, 'INVENTARIO')")
     @Operation(summary = "Obtener marca por ID")
     public ResponseEntity<ApiResponse<MarcaResponse>> obtenerPorId(@PathVariable("id") Integer id) {
         MarcaResponse response = marcaService.obtenerPorId(id);
@@ -59,7 +59,7 @@ public class MarcaController {
     }
 
     @PostMapping
-    @PreAuthorize("@moduloAccess.hasAccess(authentication, 'MARCAS')")
+    @PreAuthorize("@moduloAccess.hasAccess(authentication, 'INVENTARIO')")
     @Operation(summary = "Crear marca")
     public ResponseEntity<ApiResponse<MarcaResponse>> crear(@Valid @RequestBody MarcaRequest request) {
         MarcaResponse response = marcaService.crear(request);
@@ -68,7 +68,7 @@ public class MarcaController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("@moduloAccess.hasAccess(authentication, 'MARCAS')")
+    @PreAuthorize("@moduloAccess.hasAccess(authentication, 'INVENTARIO')")
     @Operation(summary = "Actualizar marca")
     public ResponseEntity<ApiResponse<MarcaResponse>> actualizar(
             @PathVariable("id") Integer id,
@@ -78,7 +78,7 @@ public class MarcaController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ADMINISTRADOR') and @moduloAccess.hasAccess(authentication, 'MARCAS')")
+    @PreAuthorize("hasRole('ADMINISTRADOR') and @moduloAccess.hasAccess(authentication, 'INVENTARIO')")
     @Operation(summary = "Desactivar marca")
     public ResponseEntity<ApiResponse<Void>> eliminar(@PathVariable("id") Integer id) {
         marcaService.cambiarEstado(id, "0");

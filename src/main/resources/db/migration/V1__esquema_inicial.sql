@@ -89,11 +89,13 @@ CREATE TABLE perfil (
 
 CREATE TABLE modulo (
     id_modulo INT AUTO_INCREMENT PRIMARY KEY,
+    codigo VARCHAR(50) NOT NULL,
     nombre VARCHAR(100) NOT NULL,
     url VARCHAR(150) NULL,
     icono VARCHAR(50) NULL,
     orden INT DEFAULT 0,
-    estado TINYINT DEFAULT 1 NOT NULL
+    estado TINYINT DEFAULT 1 NOT NULL,
+    CONSTRAINT uq_modulo_codigo UNIQUE (codigo)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE permiso (

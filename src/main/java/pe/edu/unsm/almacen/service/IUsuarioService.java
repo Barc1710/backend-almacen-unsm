@@ -17,5 +17,7 @@ public interface IUsuarioService {
 
     UsuarioResponse actualizar(Integer id, UsuarioUpdateRequest request);
 
+    void desactivar(Integer id);
+
     void resetearClave(Integer id, UsuarioResetClaveRequest request);
 }

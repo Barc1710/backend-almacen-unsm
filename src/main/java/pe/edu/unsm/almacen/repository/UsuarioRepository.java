@@ -17,6 +17,8 @@ public interface UsuarioRepository extends JpaRepository<Usuario, Integer> {
     @EntityGraph(attributePaths = {"perfil"})
     Optional<Usuario> findByUsuarioAndEstado(String usuario, String estado);
 
+    long countByPerfil_IdPerfilAndEstado(Integer idPerfil, String estado);
+
     @EntityGraph(attributePaths = {"perfil"})
     @Query("SELECT u FROM Usuario u WHERE " +
            "(:filtro IS NULL OR :filtro = '' OR " +

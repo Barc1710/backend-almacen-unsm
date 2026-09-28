@@ -33,7 +33,7 @@ public class UbicacionController {
     private final IUbicacionService ubicacionService;
 
     @GetMapping
-    @PreAuthorize("@moduloAccess.canRead(authentication, 'UBICACIONES', 'ARTICULOS')")
+    @PreAuthorize("@moduloAccess.hasAccess(authentication, 'INVENTARIO')")
     @Operation(summary = "Listar ubicaciones paginadas")
     public ResponseEntity<ApiResponse<PageResponse<UbicacionResponse>>> listar(
             @RequestParam(name = "filtro", required = false) String filtro,
@@ -43,7 +43,7 @@ public class UbicacionController {
     }
 
     @GetMapping("/activos")
-    @PreAuthorize("@moduloAccess.canRead(authentication, 'UBICACIONES', 'ARTICULOS')")
+    @PreAuthorize("@moduloAccess.hasAccess(authentication, 'INVENTARIO')")
     @Operation(summary = "Listar ubicaciones activas")
     public ResponseEntity<ApiResponse<List<UbicacionResponse>>> listarActivos() {
         List<UbicacionResponse> response = ubicacionService.listarActivos();
@@ -51,7 +51,7 @@ public class UbicacionController {
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("@moduloAccess.canRead(authentication, 'UBICACIONES', 'ARTICULOS')")
+    @PreAuthorize("@moduloAccess.hasAccess(authentication, 'INVENTARIO')")
     @Operation(summary = "Obtener ubicación por ID")
     public ResponseEntity<ApiResponse<UbicacionResponse>> obtenerPorId(@PathVariable("id") Integer id) {
         UbicacionResponse response = ubicacionService.obtenerPorId(id);
@@ -59,7 +59,7 @@ public class UbicacionController {
     }
 
     @PostMapping
-    @PreAuthorize("@moduloAccess.hasAccess(authentication, 'UBICACIONES')")
+    @PreAuthorize("@moduloAccess.hasAccess(authentication, 'INVENTARIO')")
     @Operation(summary = "Crear ubicación")
     public ResponseEntity<ApiResponse<UbicacionResponse>> crear(@Valid @RequestBody UbicacionRequest request) {
         UbicacionResponse response = ubicacionService.crear(request);
@@ -68,7 +68,7 @@ public class UbicacionController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("@moduloAccess.hasAccess(authentication, 'UBICACIONES')")
+    @PreAuthorize("@moduloAccess.hasAccess(authentication, 'INVENTARIO')")
     @Operation(summary = "Actualizar ubicación")
     public ResponseEntity<ApiResponse<UbicacionResponse>> actualizar(
             @PathVariable("id") Integer id,
@@ -78,7 +78,7 @@ public class UbicacionController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ADMINISTRADOR') and @moduloAccess.hasAccess(authentication, 'UBICACIONES')")
+    @PreAuthorize("hasRole('ADMINISTRADOR') and @moduloAccess.hasAccess(authentication, 'INVENTARIO')")
     @Operation(summary = "Desactivar ubicación")
     public ResponseEntity<ApiResponse<Void>> eliminar(@PathVariable("id") Integer id) {
         ubicacionService.cambiarEstado(id, "0");

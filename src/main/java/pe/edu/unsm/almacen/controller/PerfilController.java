@@ -8,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -26,7 +27,7 @@ import pe.edu.unsm.almacen.service.IPerfilService;
 @RequestMapping("/perfiles")
 @RequiredArgsConstructor
 @Tag(name = "Perfiles")
-@PreAuthorize("hasRole('ADMINISTRADOR')")
+@PreAuthorize("hasRole('ADMINISTRADOR') or @moduloAccess.hasAccess(authentication, 'PERFILES')")
 public class PerfilController {
 
     private final IPerfilService perfilService;
@@ -48,6 +49,22 @@ public class PerfilController {
     public ResponseEntity<ApiResponse<PerfilResponse>> crear(@Valid @RequestBody PerfilRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.ok("Perfil creado", perfilService.crear(request)));
+    }
+
+    @PutMapping("/{id}")
+    @Operation(summary = "Actualizar perfil")
+    public ResponseEntity<ApiResponse<PerfilResponse>> actualizar(
+            @PathVariable Integer id,
+            @Valid @RequestBody PerfilRequest request
+    ) {
+        return ResponseEntity.ok(ApiResponse.ok("Perfil actualizado", perfilService.actualizar(id, request)));
+    }
+
+    @DeleteMapping("/{id}")
+    @Operation(summary = "Desactivar perfil")
+    public ResponseEntity<ApiResponse<Void>> desactivar(@PathVariable Integer id) {
+        perfilService.desactivar(id);
+        return ResponseEntity.ok(ApiResponse.ok("Perfil desactivado exitosamente", null));
     }
 
     @GetMapping("/{id}/modulos")

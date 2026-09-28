@@ -33,7 +33,7 @@ public class EncargadoAlmacenController {
     private final IEncargadoAlmacenService encargadoAlmacenService;
 
     @GetMapping
-    @PreAuthorize("@moduloAccess.canRead(authentication, 'ENCARGADOS_ALMACEN', 'EGRESOS')")
+    @PreAuthorize("@moduloAccess.hasAccess(authentication, 'EGRESOS')")
     @Operation(summary = "Listar encargados de almacén paginados")
     public ResponseEntity<ApiResponse<PageResponse<EncargadoAlmacenResponse>>> listar(
             @RequestParam(name = "filtro", required = false) String filtro,
@@ -43,7 +43,7 @@ public class EncargadoAlmacenController {
     }
 
     @GetMapping("/activos")
-    @PreAuthorize("@moduloAccess.canRead(authentication, 'ENCARGADOS_ALMACEN', 'EGRESOS')")
+    @PreAuthorize("@moduloAccess.hasAccess(authentication, 'EGRESOS')")
     @Operation(summary = "Listar encargados de almacén activos")
     public ResponseEntity<ApiResponse<List<EncargadoAlmacenResponse>>> listarActivos() {
         List<EncargadoAlmacenResponse> response = encargadoAlmacenService.listarActivos();
@@ -51,7 +51,7 @@ public class EncargadoAlmacenController {
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("@moduloAccess.canRead(authentication, 'ENCARGADOS_ALMACEN', 'EGRESOS')")
+    @PreAuthorize("@moduloAccess.hasAccess(authentication, 'EGRESOS')")
     @Operation(summary = "Obtener encargado de almacén por ID")
     public ResponseEntity<ApiResponse<EncargadoAlmacenResponse>> obtenerPorId(@PathVariable("id") Integer id) {
         EncargadoAlmacenResponse response = encargadoAlmacenService.obtenerPorId(id);
@@ -59,7 +59,7 @@ public class EncargadoAlmacenController {
     }
 
     @PostMapping
-    @PreAuthorize("@moduloAccess.hasAccess(authentication, 'ENCARGADOS_ALMACEN')")
+    @PreAuthorize("@moduloAccess.hasAccess(authentication, 'EGRESOS')")
     @Operation(summary = "Crear encargado de almacén")
     public ResponseEntity<ApiResponse<EncargadoAlmacenResponse>> crear(@Valid @RequestBody EncargadoAlmacenRequest request) {
         EncargadoAlmacenResponse response = encargadoAlmacenService.crear(request);
@@ -68,7 +68,7 @@ public class EncargadoAlmacenController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("@moduloAccess.hasAccess(authentication, 'ENCARGADOS_ALMACEN')")
+    @PreAuthorize("@moduloAccess.hasAccess(authentication, 'EGRESOS')")
     @Operation(summary = "Actualizar encargado de almacén")
     public ResponseEntity<ApiResponse<EncargadoAlmacenResponse>> actualizar(
             @PathVariable("id") Integer id,
@@ -78,7 +78,7 @@ public class EncargadoAlmacenController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ADMINISTRADOR') and @moduloAccess.hasAccess(authentication, 'ENCARGADOS_ALMACEN')")
+    @PreAuthorize("hasRole('ADMINISTRADOR') and @moduloAccess.hasAccess(authentication, 'EGRESOS')")
     @Operation(summary = "Desactivar encargado de almacén")
     public ResponseEntity<ApiResponse<Void>> eliminar(@PathVariable("id") Integer id) {
         encargadoAlmacenService.cambiarEstado(id, "0");

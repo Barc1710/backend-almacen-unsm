@@ -27,7 +27,7 @@ public class KardexController {
     private final IKardexService kardexService;
 
     @GetMapping({"/articulo/{idArticulo}", "/articulos/{idArticulo}"})
-    @PreAuthorize("@moduloAccess.canRead(authentication, 'KARDEX', 'ARTICULOS')")
+    @PreAuthorize("@moduloAccess.canRead(authentication, 'KARDEX', 'INVENTARIO')")
     @Operation(summary = "Consultar Kardex de un artículo")
     public ResponseEntity<ApiResponse<PageResponse<KardexMovimientoResponse>>> listarPorArticulo(
             @PathVariable("idArticulo") Integer idArticulo,
