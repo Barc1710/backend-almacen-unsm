@@ -64,6 +64,9 @@ public interface ArticuloRepository extends JpaRepository<Articulo, Integer> {
 
     boolean existsByCodigo(String codigo);
 
+    @Query("SELECT a.codigo FROM Articulo a WHERE a.codigo LIKE CONCAT(:prefijo, '%')")
+    List<String> findCodigosByPrefijo(@Param("prefijo") String prefijo);
+
     @Modifying(flushAutomatically = true, clearAutomatically = true)
     @Query("UPDATE Articulo a SET a.descripcion = :desc, a.unidadMedida = :unidadMedida, a.familia = :familia, a.marca = :marca, a.ubicacion = :ubicacion, " +
            "a.cantidadMinima = :min, a.precio = :precio, a.detalle = :det WHERE a.id = :id")

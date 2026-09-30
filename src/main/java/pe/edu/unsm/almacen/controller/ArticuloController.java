@@ -59,6 +59,14 @@ public class ArticuloController {
         return ResponseEntity.ok(new ApiResponse<>(true, "Artículos obtenidos", response));
     }
 
+    @GetMapping("/siguiente-codigo")
+    @PreAuthorize("@moduloAccess.canRead(authentication, 'INVENTARIO', 'INGRESOS', 'EGRESOS', 'KARDEX')")
+    @Operation(summary = "Obtener el siguiente código correlativo según familia")
+    public ResponseEntity<ApiResponse<String>> obtenerSiguienteCodigo(@RequestParam("idFamilia") Integer idFamilia) {
+        String codigo = articuloService.generarSiguienteCodigo(idFamilia);
+        return ResponseEntity.ok(new ApiResponse<>(true, "Siguiente código obtenido", codigo));
+    }
+
     @GetMapping("/{id}")
     @PreAuthorize("@moduloAccess.canRead(authentication, 'INVENTARIO', 'INGRESOS', 'EGRESOS', 'KARDEX')")
     @Operation(summary = "Obtener artículo por ID")

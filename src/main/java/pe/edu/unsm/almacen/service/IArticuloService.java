@@ -30,4 +30,6 @@ public interface IArticuloService {
     void cambiarEstado(Integer id, String nuevoEstado);
 
     ArticuloResponse toggleActivo(Integer id);
+
+    String generarSiguienteCodigo(Integer idFamilia);
 }

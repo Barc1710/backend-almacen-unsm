@@ -75,14 +75,18 @@ public class ArticuloServiceImpl implements IArticuloService {
     @Override
     @Transactional
     public ArticuloResponse crear(ArticuloCreateRequest request) {
-        String codigoLimpio = request.codigo().trim().toUpperCase();
-
-        if (articuloRepository.existsByCodigo(codigoLimpio)) {
-            throw new DuplicateResourceException("Código de artículo duplicado: " + codigoLimpio);
-        }
-
-        Familia familia = familiaRepository.findById(request.idFamilia())
+        Familia familia = familiaRepository.findByIdWithLock(request.idFamilia())
                 .orElseThrow(() -> new ResourceNotFoundException("Familia no encontrada con ID: " + request.idFamilia()));
+
+        String codigoFinal;
+        if (request.codigo() != null && !request.codigo().trim().isEmpty()) {
+            codigoFinal = request.codigo().trim().toUpperCase();
+            if (articuloRepository.existsByCodigo(codigoFinal)) {
+                throw new DuplicateResourceException("Código de artículo duplicado: " + codigoFinal);
+            }
+        } else {
+            codigoFinal = generarYReservarCodigo(familia);
+        }
 
         Marca marca = marcaRepository.findById(request.idMarca())
                 .orElseThrow(() -> new ResourceNotFoundException("Marca no encontrada con ID: " + request.idMarca()));
@@ -97,7 +101,7 @@ public class ArticuloServiceImpl implements IArticuloService {
         }
 
         Articulo articulo = Articulo.builder()
-                .codigo(codigoLimpio)
+                .codigo(codigoFinal)
                 .descripcion(request.descripcion().trim())
                 .unidadMedida(unidadMedida)
                 .familia(familia)
@@ -231,5 +235,69 @@ public class ArticuloServiceImpl implements IArticuloService {
                 a.getUbicacion() != null ? a.getUbicacion().getNombre() : null,
                 a.getActivo()
         );
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public String generarSiguienteCodigo(Integer idFamilia) {
+        Familia familia = familiaRepository.findById(idFamilia)
+                .orElseThrow(() -> new ResourceNotFoundException("Familia no encontrada con ID: " + idFamilia));
+        return calcularSiguienteCodigo(familia);
+    }
+
+    private String generarYReservarCodigo(Familia familia) {
+        String codigoGenerado = calcularSiguienteCodigo(familia);
+
+        String inicial = obtenerInicialFamilia(familia);
+        int numeroAsignado = 1;
+        try {
+            numeroAsignado = Integer.parseInt(codigoGenerado.substring(inicial.length()));
+        } catch (Exception ignored) {
+        }
+
+        familia.setCorrelativo(numeroAsignado + 1);
+        familiaRepository.save(familia);
+
+        return codigoGenerado;
+    }
+
+    private String calcularSiguienteCodigo(Familia familia) {
+        String inicial = obtenerInicialFamilia(familia);
+        List<String> codigosExistentes = articuloRepository.findCodigosByPrefijo(inicial);
+
+        int siguienteNumero = (familia.getCorrelativo() != null && familia.getCorrelativo() > 0)
+                ? familia.getCorrelativo()
+                : 1;
+
+        for (String codigo : codigosExistentes) {
+            if (codigo != null && codigo.toUpperCase().startsWith(inicial)) {
+                String parteNumerica = codigo.substring(inicial.length()).trim();
+                try {
+                    int num = Integer.parseInt(parteNumerica);
+                    if (num >= siguienteNumero) {
+                        siguienteNumero = num + 1;
+                    }
+                } catch (NumberFormatException ignored) {
+                }
+            }
+        }
+
+        String codigoCandidato = String.format("%s%04d", inicial, siguienteNumero);
+        while (articuloRepository.existsByCodigo(codigoCandidato)) {
+            siguienteNumero++;
+            codigoCandidato = String.format("%s%04d", inicial, siguienteNumero);
+        }
+
+        return codigoCandidato;
+    }
+
+    private String obtenerInicialFamilia(Familia familia) {
+        if (familia.getInicial() != null && !familia.getInicial().trim().isEmpty()) {
+            return familia.getInicial().trim().toUpperCase();
+        }
+        if (familia.getNombre() != null && !familia.getNombre().trim().isEmpty()) {
+            return familia.getNombre().trim().substring(0, 1).toUpperCase();
+        }
+        return "ART";
     }
 }
