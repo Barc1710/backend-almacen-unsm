@@ -13,4 +13,8 @@ public interface IIngresoService {
     IngresoResponse obtenerPorId(Integer id);
 
     IngresoResponse registrar(IngresoCreateRequest request);
+
+    String obtenerSiguienteNumeroIngreso();
+
+    IngresoResponse anular(Integer id);
 }

@@ -9,11 +9,17 @@ public record IngresoResponse(
         Integer idProveedor,
         String razonSocialProveedor,
         String rucProveedor,
+        Integer idUsuario,
+        String nombreUsuario,
+        String prefijo,
+        Integer correlativo,
+        String numeroCompleto,
         String numeroOrdenCompra,
         String descripcion,
         LocalDateTime fecha,
         String estado,
         BigDecimal total,
+        Integer totalItems,
         List<DetalleIngresoResponse> detalles
 ) {
 }

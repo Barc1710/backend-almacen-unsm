@@ -5,6 +5,7 @@ public enum TipoMovimiento {
     INGRESO,
     EGRESO,
     REVERSO_EGRESO,
+    REVERSO_INGRESO,
     AJUSTE,
     BAJA_DETERIORO,
     BAJA_VENCIMIENTO

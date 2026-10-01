@@ -17,11 +17,13 @@ import org.springframework.transaction.annotation.Transactional;
 import pe.edu.unsm.almacen.dto.common.PageResponse;
 import pe.edu.unsm.almacen.dto.response.KardexMovimientoResponse;
 import pe.edu.unsm.almacen.entity.Egreso;
+import pe.edu.unsm.almacen.entity.Ingreso;
 import pe.edu.unsm.almacen.entity.KardexMovimiento;
 import pe.edu.unsm.almacen.entity.TipoMovimiento;
 import pe.edu.unsm.almacen.exception.ResourceNotFoundException;
 import pe.edu.unsm.almacen.repository.ArticuloRepository;
 import pe.edu.unsm.almacen.repository.EgresoRepository;
+import pe.edu.unsm.almacen.repository.IngresoRepository;
 import pe.edu.unsm.almacen.repository.KardexMovimientoRepository;
 import pe.edu.unsm.almacen.service.IKardexService;
 
@@ -32,6 +34,7 @@ public class KardexServiceImpl implements IKardexService {
     private final KardexMovimientoRepository kardexMovimientoRepository;
     private final ArticuloRepository articuloRepository;
     private final EgresoRepository egresoRepository;
+    private final IngresoRepository ingresoRepository;
 
     @Override
     @Transactional(readOnly = true)
@@ -70,7 +73,8 @@ public class KardexServiceImpl implements IKardexService {
         );
 
         Map<Integer, Egreso> egresosMap = precargarEgresos(page.getContent());
-        return PageResponse.of(page.map(k -> construirKardexResponse(k, egresosMap)));
+        Map<Integer, Ingreso> ingresosMap = precargarIngresos(page.getContent());
+        return PageResponse.of(page.map(k -> construirKardexResponse(k, egresosMap, ingresosMap)));
     }
 
     @Override
@@ -99,7 +103,8 @@ public class KardexServiceImpl implements IKardexService {
         );
 
         Map<Integer, Egreso> egresosMap = precargarEgresos(page.getContent());
-        return PageResponse.of(page.map(k -> construirKardexResponse(k, egresosMap)));
+        Map<Integer, Ingreso> ingresosMap = precargarIngresos(page.getContent());
+        return PageResponse.of(page.map(k -> construirKardexResponse(k, egresosMap, ingresosMap)));
     }
 
     private Map<Integer, Egreso> precargarEgresos(List<KardexMovimiento> movimientos) {
@@ -123,7 +128,29 @@ public class KardexServiceImpl implements IKardexService {
                 .collect(Collectors.toMap(Egreso::getId, Function.identity(), (e1, e2) -> e1));
     }
 
-    private KardexMovimientoResponse construirKardexResponse(KardexMovimiento k, Map<Integer, Egreso> egresosMap) {
+    private Map<Integer, Ingreso> precargarIngresos(List<KardexMovimiento> movimientos) {
+        if (movimientos == null || movimientos.isEmpty()) {
+            return Map.of();
+        }
+        Set<Integer> ingresoIds = movimientos.stream()
+                .filter(k -> (k.getTipoMovimiento() == TipoMovimiento.INGRESO
+                        || k.getTipoMovimiento() == TipoMovimiento.REVERSO_INGRESO)
+                        && k.getDocumentoId() != null)
+                .map(KardexMovimiento::getDocumentoId)
+                .collect(Collectors.toSet());
+
+        if (ingresoIds.isEmpty()) {
+            return Map.of();
+        }
+
+        return ingresoRepository.findAllById(ingresoIds).stream()
+                .collect(Collectors.toMap(Ingreso::getId, Function.identity(), (i1, i2) -> i1));
+    }
+
+    private KardexMovimientoResponse construirKardexResponse(
+            KardexMovimiento k,
+            Map<Integer, Egreso> egresosMap,
+            Map<Integer, Ingreso> ingresosMap) {
         Integer idArticulo = k.getArticulo() != null ? k.getArticulo().getId() : null;
         String codigoArticulo = k.getArticulo() != null ? k.getArticulo().getCodigo() : null;
         String descripcionArticulo = k.getArticulo() != null ? k.getArticulo().getDescripcion() : null;
@@ -148,14 +175,23 @@ public class KardexServiceImpl implements IKardexService {
                     e = egresoRepository.findById(k.getDocumentoId()).orElse(null);
                 }
                 if (e != null) {
-                    documentoReferencia = e.getPrefijo() + "-" + String.format("%06d", e.getCorrelativo());
+                    documentoReferencia = e.getNumeroCompleto();
                 } else {
-                    documentoReferencia = String.format("%s #%06d", k.getDocumentoTipo(), k.getDocumentoId());
+                    documentoReferencia = String.format("%s #%04d", k.getDocumentoTipo(), k.getDocumentoId());
                 }
-            } else if (k.getTipoMovimiento() == TipoMovimiento.INGRESO) {
-                documentoReferencia = String.format("ING-%06d", k.getDocumentoId());
+            } else if (k.getTipoMovimiento() == TipoMovimiento.INGRESO
+                    || k.getTipoMovimiento() == TipoMovimiento.REVERSO_INGRESO) {
+                Ingreso ing = ingresosMap != null ? ingresosMap.get(k.getDocumentoId()) : null;
+                if (ing == null && ingresoRepository != null) {
+                    ing = ingresoRepository.findById(k.getDocumentoId()).orElse(null);
+                }
+                if (ing != null) {
+                    documentoReferencia = ing.getNumeroCompleto();
+                } else {
+                    documentoReferencia = String.format("%s #%04d", k.getDocumentoTipo() != null ? k.getDocumentoTipo() : "ING", k.getDocumentoId());
+                }
             } else {
-                documentoReferencia = String.format("%s #%06d", k.getDocumentoTipo(), k.getDocumentoId());
+                documentoReferencia = String.format("%s #%04d", k.getDocumentoTipo(), k.getDocumentoId());
             }
         } else if (k.getDocumentoTipo() != null) {
             documentoReferencia = k.getDocumentoTipo();

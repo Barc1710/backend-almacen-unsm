@@ -142,7 +142,7 @@ public class EgresoServiceImpl implements IEgresoService {
 
         String prefijo = (request.prefijo() != null && !request.prefijo().isBlank())
                 ? request.prefijo().trim().toUpperCase()
-                : "A" + String.format("%02d", Year.now().getValue() % 100);
+                : "E" + String.format("%02d", Year.now().getValue() % 100);
 
         Integer maxCorrelativo = egresoRepository.obtenerMaximoCorrelativo(prefijo);
         int nuevoCorrelativo = (maxCorrelativo != null ? maxCorrelativo : 0) + 1;

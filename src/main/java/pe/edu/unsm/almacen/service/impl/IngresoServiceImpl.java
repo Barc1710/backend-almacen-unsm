@@ -4,12 +4,13 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.Year;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 import java.util.Set;
 import org.springframework.security.access.AccessDeniedException;
 import lombok.RequiredArgsConstructor;
@@ -64,11 +65,25 @@ public class IngresoServiceImpl implements IIngresoService {
 
         Page<Ingreso> page = ingresoRepository.listarPaginado(idProveedor, desdeDateTime, hastaDateTime, pageable);
         List<Integer> ids = page.getContent().stream().map(Ingreso::getId).toList();
-        Map<Integer, BigDecimal> totales = ids.isEmpty() ? Map.of()
-                : detalleIngresoRepository.sumarTotalesPorIngresoIds(ids).stream()
-                        .collect(Collectors.toMap(row -> (Integer) row[0], row -> extraerMontoSeguro(row[1])));
-        return PageResponse.of(page.map(ingreso -> construirIngresoResumenResponse(
-                ingreso, totales.getOrDefault(ingreso.getId(), BigDecimal.ZERO).setScale(2, RoundingMode.HALF_UP))));
+
+        Map<Integer, BigDecimal> totales = new java.util.HashMap<>();
+        Map<Integer, Integer> itemsCount = new java.util.HashMap<>();
+
+        if (!ids.isEmpty()) {
+            for (Object[] row : detalleIngresoRepository.sumarTotalesYContarItemsPorIngresoIds(ids)) {
+                Integer id = (Integer) row[0];
+                BigDecimal total = extraerMontoSeguro(row[1]);
+                Integer count = row[2] instanceof Number num ? num.intValue() : 0;
+                totales.put(id, total);
+                itemsCount.put(id, count);
+            }
+        }
+
+        return PageResponse.of(page.map(ingreso -> {
+            BigDecimal total = totales.getOrDefault(ingreso.getId(), BigDecimal.ZERO).setScale(2, RoundingMode.HALF_UP);
+            int count = itemsCount.getOrDefault(ingreso.getId(), 0);
+            return construirIngresoResumenResponse(ingreso, total, count);
+        }));
     }
 
     @Override
@@ -78,6 +93,14 @@ public class IngresoServiceImpl implements IIngresoService {
                 .orElseThrow(() -> new ResourceNotFoundException("Ingreso no encontrado con ID: " + id));
 
         return construirIngresoResponse(ingreso);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public String obtenerSiguienteNumeroIngreso() {
+        String prefijo = generarPrefijoAnual();
+        int nuevoCorrelativo = calcularSiguienteCorrelativo(prefijo);
+        return String.format("%s-%04d", prefijo, nuevoCorrelativo);
     }
 
     @Override
@@ -105,8 +128,16 @@ public class IngresoServiceImpl implements IIngresoService {
         Proveedor proveedor = proveedorRepository.findById(request.idProveedor())
                 .orElseThrow(() -> new ResourceNotFoundException("Proveedor no encontrado con ID: " + request.idProveedor()));
 
+        String prefijo = generarPrefijoAnual();
+        int nuevoCorrelativo = calcularSiguienteCorrelativo(prefijo);
+
+        Usuario usuarioActual = obtenerUsuarioActual();
+
         Ingreso ingreso = Ingreso.builder()
                 .proveedor(proveedor)
+                .usuario(usuarioActual)
+                .prefijo(prefijo)
+                .correlativo(nuevoCorrelativo)
                 .numeroOrdenCompra(ordenCompraLimpia)
                 .descripcion(request.descripcion() != null ? request.descripcion().trim() : "")
                 .fecha(LocalDateTime.now())
@@ -114,7 +145,6 @@ public class IngresoServiceImpl implements IIngresoService {
                 .build();
         Ingreso ingresoGuardado = ingresoRepository.save(ingreso);
 
-        Usuario usuarioActual = obtenerUsuarioActual();
         List<DetalleIngresoResponse> detallesResponse = new ArrayList<>();
 
         for (DetalleItemRequest item : detallesOrdenados) {
@@ -132,7 +162,9 @@ public class IngresoServiceImpl implements IIngresoService {
             BigDecimal nuevoSaldo = saldoAnterior.add(cantidad);
 
             articulo.setSaldo(nuevoSaldo);
-            articulo.setPrecio(item.precio());
+            if (item.precio() != null && item.precio().compareTo(BigDecimal.ZERO) > 0) {
+                articulo.setPrecio(item.precio());
+            }
             articuloRepository.save(articulo);
 
             DetalleIngreso detalle = DetalleIngreso.builder()
@@ -159,58 +191,148 @@ public class IngresoServiceImpl implements IIngresoService {
                     .build();
             kardexMovimientoRepository.save(kardex);
 
-            detallesResponse.add(new DetalleIngresoResponse(
-                    detalleGuardado.getId(),
-                    articulo.getId(),
-                    articulo.getCodigo(),
-                    articulo.getDescripcion(),
-                    detalleGuardado.getCantidad(),
-                    detalleGuardado.getPrecio(),
-                    detalleGuardado.getSaldo(),
-                    detalleGuardado.getFecha(),
-                    detalleGuardado.getTipo()
-            ));
+            detallesResponse.add(mapearDetalleResponse(detalleGuardado, articulo));
         }
 
-        log.info("Ingreso ID={} registrado con {} artículos", ingresoGuardado.getId(), detallesResponse.size());
+        log.info("Ingreso {} (ID={}) registrado con {} artículos",
+                ingresoGuardado.getNumeroCompleto(), ingresoGuardado.getId(), detallesResponse.size());
 
-        return crearIngresoResponse(ingresoGuardado, calcularTotal(detallesResponse), detallesResponse);
+        return crearIngresoResponse(ingresoGuardado, calcularTotal(detallesResponse), detallesResponse.size(), detallesResponse);
     }
 
     private IngresoResponse construirIngresoResponse(Ingreso ingreso) {
         List<DetalleIngreso> detalles = detalleIngresoRepository.findByIngreso_IdOrderByIdAsc(ingreso.getId());
         List<DetalleIngresoResponse> detallesResponse = detalles.stream()
-                .map(d -> new DetalleIngresoResponse(
-                        d.getId(),
-                        d.getArticulo() != null ? d.getArticulo().getId() : null,
-                        d.getArticulo() != null ? d.getArticulo().getCodigo() : null,
-                        d.getArticulo() != null ? d.getArticulo().getDescripcion() : null,
-                        d.getCantidad(),
-                        d.getPrecio(),
-                        d.getSaldo(),
-                        d.getFecha(),
-                        d.getTipo()
-                ))
+                .map(d -> mapearDetalleResponse(d, d.getArticulo()))
                 .toList();
 
-        return crearIngresoResponse(ingreso, calcularTotal(detallesResponse), detallesResponse);
+        return crearIngresoResponse(ingreso, calcularTotal(detallesResponse), detallesResponse.size(), detallesResponse);
     }
 
-    private IngresoResponse construirIngresoResumenResponse(Ingreso ingreso, BigDecimal total) {
-        return crearIngresoResponse(ingreso, total, List.of());
+    private IngresoResponse construirIngresoResumenResponse(Ingreso ingreso, BigDecimal total, Integer totalItems) {
+        return crearIngresoResponse(ingreso, total, totalItems, List.of());
     }
 
-    private IngresoResponse crearIngresoResponse(Ingreso ingreso, BigDecimal total, List<DetalleIngresoResponse> detalles) {
+    @Override
+    @Transactional
+    public IngresoResponse anular(Integer id) {
+        Ingreso ingreso = ingresoRepository.findByIdWithLock(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Ingreso no encontrado con ID: " + id));
+
+        if (!"1".equals(ingreso.getEstado())) {
+            throw new BusinessException("Ingreso inactivo o ya anulado: " + id);
+        }
+
+        Usuario usuarioActual = obtenerUsuarioActual();
+
+        List<DetalleIngreso> detalles = detalleIngresoRepository.findByIngreso_IdOrderByIdAsc(ingreso.getId());
+        List<DetalleIngreso> detallesOrdenados = detalles.stream()
+                .sorted(Comparator.comparing(d -> d.getArticulo().getId()))
+                .toList();
+
+        // 1. Cargar artículos con bloqueo pesimista y validar suficiencia de existencias en una sola pasada
+        Map<Integer, Articulo> articulosMap = new HashMap<>();
+        for (DetalleIngreso detalle : detallesOrdenados) {
+            Integer idArticulo = detalle.getArticulo().getId();
+            Articulo articulo = articuloRepository.findByIdWithLock(idArticulo)
+                    .orElseThrow(() -> new ResourceNotFoundException("Artículo no encontrado con ID: " + idArticulo));
+            articulosMap.put(idArticulo, articulo);
+
+            BigDecimal saldoActual = articulo.getSaldo() != null ? articulo.getSaldo() : BigDecimal.ZERO;
+            BigDecimal cantidadRevertir = detalle.getCantidad() != null ? detalle.getCantidad() : BigDecimal.ZERO;
+
+            if (saldoActual.compareTo(cantidadRevertir) < 0) {
+                throw new BusinessException(
+                        "No se puede anular el ingreso " + ingreso.getNumeroCompleto() +
+                        ": El artículo '" + articulo.getDescripcion() + "' (" + articulo.getCodigo() +
+                        ") cuenta con un saldo actual de " + saldoActual +
+                        ", insuficiente para descontar la cantidad ingresada de " + cantidadRevertir +
+                        ". Es probable que dicho stock ya haya sido consumido o despachado en egresos posteriores."
+                );
+            }
+        }
+
+        // 2. Revertir existencias utilizando las entidades ya cargadas y registrar movimiento en Kardex
+        for (DetalleIngreso detalle : detallesOrdenados) {
+            Articulo articulo = articulosMap.get(detalle.getArticulo().getId());
+            BigDecimal saldoActual = articulo.getSaldo() != null ? articulo.getSaldo() : BigDecimal.ZERO;
+            BigDecimal cantidadRevertir = detalle.getCantidad() != null ? detalle.getCantidad() : BigDecimal.ZERO;
+            BigDecimal nuevoSaldo = saldoActual.subtract(cantidadRevertir);
+
+            articulo.setSaldo(nuevoSaldo);
+            articuloRepository.save(articulo);
+
+            KardexMovimiento kardex = KardexMovimiento.builder()
+                    .articulo(articulo)
+                    .tipoMovimiento(TipoMovimiento.REVERSO_INGRESO)
+                    .documentoTipo("ANULACION_INGRESO")
+                    .documentoId(ingreso.getId())
+                    .cantidadEntrada(BigDecimal.ZERO)
+                    .cantidadSalida(cantidadRevertir)
+                    .saldoResultante(nuevoSaldo)
+                    .usuario(usuarioActual)
+                    .fechaHora(LocalDateTime.now())
+                    .build();
+            kardexMovimientoRepository.save(kardex);
+        }
+
+        // 3. Marcar el ingreso con estado anulado (0)
+        ingreso.setEstado("0");
+        ingresoRepository.save(ingreso);
+
+        log.info("Ingreso {} (ID={}) anulado con éxito por usuario {}. Stock revertido para {} artículos.",
+                ingreso.getNumeroCompleto(), ingreso.getId(), usuarioActual.getUsuario(), detalles.size());
+
+        return construirIngresoResponse(ingreso);
+    }
+
+    private DetalleIngresoResponse mapearDetalleResponse(DetalleIngreso detalle, Articulo articulo) {
+        String simbolo = articulo != null && articulo.getUnidadMedida() != null
+                ? articulo.getUnidadMedida().getSimbolo() : null;
+        Boolean permiteDec = articulo != null && articulo.getUnidadMedida() != null
+                ? articulo.getUnidadMedida().getPermiteDecimales() : null;
+
+        return new DetalleIngresoResponse(
+                detalle.getId(),
+                articulo != null ? articulo.getId() : null,
+                articulo != null ? articulo.getCodigo() : null,
+                articulo != null ? articulo.getDescripcion() : null,
+                simbolo,
+                permiteDec,
+                detalle.getCantidad(),
+                detalle.getPrecio(),
+                detalle.getSaldo(),
+                detalle.getFecha(),
+                detalle.getTipo()
+        );
+    }
+
+    private String generarPrefijoAnual() {
+        return "I" + String.format("%02d", Year.now().getValue() % 100);
+    }
+
+    private int calcularSiguienteCorrelativo(String prefijo) {
+        Integer maxCorrelativo = ingresoRepository.obtenerMaximoCorrelativo(prefijo);
+        return (maxCorrelativo != null ? maxCorrelativo : 0) + 1;
+    }
+
+    private IngresoResponse crearIngresoResponse(Ingreso ingreso, BigDecimal total, Integer totalItems, List<DetalleIngresoResponse> detalles) {
         return new IngresoResponse(
                 ingreso.getId(),
                 ingreso.getProveedor() != null ? ingreso.getProveedor().getId() : null,
                 ingreso.getProveedor() != null ? ingreso.getProveedor().getRazonSocial() : null,
                 ingreso.getProveedor() != null ? ingreso.getProveedor().getRuc() : null,
+                ingreso.getUsuario() != null ? ingreso.getUsuario().getId() : null,
+                ingreso.getUsuario() != null ? ingreso.getUsuario().getNombreCompleto() : null,
+                ingreso.getPrefijo(),
+                ingreso.getCorrelativo(),
+                ingreso.getNumeroCompleto(),
                 ingreso.getNumeroOrdenCompra(),
                 ingreso.getDescripcion(),
                 ingreso.getFecha(),
                 ingreso.getEstado(),
                 total,
+                totalItems,
                 detalles
         );
     }

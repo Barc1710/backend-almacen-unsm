@@ -109,8 +109,10 @@ public class Egreso {
     }
 
     public String getNumeroCompleto() {
-        String p = (prefijo != null && !prefijo.isBlank()) ? prefijo : "EGR";
+        String p = (prefijo != null && !prefijo.isBlank())
+                ? prefijo
+                : "E" + String.format("%02d", java.time.Year.now().getValue() % 100);
         int c = correlativo != null ? correlativo : 0;
-        return String.format("%s-%06d", p, c);
+        return String.format("%s-%04d", p, c);
     }
 }

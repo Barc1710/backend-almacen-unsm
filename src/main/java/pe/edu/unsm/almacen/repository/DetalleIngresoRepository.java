@@ -9,12 +9,12 @@ import pe.edu.unsm.almacen.entity.DetalleIngreso;
 
 public interface DetalleIngresoRepository extends JpaRepository<DetalleIngreso, Integer> {
 
-    @EntityGraph(attributePaths = {"articulo"})
+    @EntityGraph(attributePaths = {"articulo", "articulo.unidadMedida"})
     List<DetalleIngreso> findByIngreso_IdOrderByIdAsc(Integer idIngreso);
-    // Mismo redondeo monetario por línea que en las respuestas detalladas.
-    @Query("SELECT d.ingreso.id, COALESCE(SUM(ROUND(d.cantidad * d.precio, 2)), 0.00) FROM DetalleIngreso d "
+
+    @Query("SELECT d.ingreso.id, COALESCE(SUM(ROUND(d.cantidad * d.precio, 2)), 0.00), COUNT(d.id) FROM DetalleIngreso d "
             + "WHERE d.ingreso.id IN :ids GROUP BY d.ingreso.id")
-    List<Object[]> sumarTotalesPorIngresoIds(@Param("ids") List<Integer> ids);
+    List<Object[]> sumarTotalesYContarItemsPorIngresoIds(@Param("ids") List<Integer> ids);
 
     @Query("""
         SELECT di.articulo.id, i.numeroOrdenCompra

@@ -75,7 +75,7 @@ class MovimientosServiceTest {
 
     @BeforeEach
     void autenticar() {
-        var usuario = Usuario.builder().idUsuario(1).nombre("Ana").apellido("Pérez").build();
+        var usuario = Usuario.builder().idUsuario(1).nombre("Ana").apellido("Pérez").usuario("ana").build();
         var principal = new UserDetailsImpl(1, "Ana", "Pérez", "ana", "", "USUARIO", false,
                 true, List.of(new SimpleGrantedAuthority("ROLE_USUARIO")));
         SecurityContextHolder.getContext().setAuthentication(
@@ -110,10 +110,54 @@ class MovimientosServiceTest {
 
         assertEquals(new BigDecimal("7.00"), articulo.getSaldo());
         assertEquals(new BigDecimal("7.00"), respuesta.total());
+        assertEquals("Ana Pérez", respuesta.nombreUsuario());
+        var captorIngreso = ArgumentCaptor.forClass(Ingreso.class);
+        verify(ingresoRepository).save(captorIngreso.capture());
+        assertEquals(1, captorIngreso.getValue().getUsuario().getIdUsuario());
+
         var movimiento = ArgumentCaptor.forClass(KardexMovimiento.class);
         verify(kardexMovimientoRepository).save(movimiento.capture());
         assertEquals(TipoMovimiento.INGRESO, movimiento.getValue().getTipoMovimiento());
         assertEquals(new BigDecimal("7.00"), movimiento.getValue().getSaldoResultante());
+    }
+
+    @Test
+    void anulacionIngresoDescuentaExistenciasYRegistraReverso() {
+        Articulo articulo = articuloConCincoUnidades();
+        Ingreso ingreso = Ingreso.builder().id(20).prefijo("I26").correlativo(1).estado("1").build();
+        DetalleIngreso detalle = DetalleIngreso.builder().articulo(articulo)
+                .cantidad(new BigDecimal("2.00")).precio(new BigDecimal("3.50")).build();
+        when(ingresoRepository.findByIdWithLock(20)).thenReturn(Optional.of(ingreso));
+        when(detalleIngresoRepository.findByIngreso_IdOrderByIdAsc(20)).thenReturn(List.of(detalle));
+        when(articuloRepository.findByIdWithLock(10)).thenReturn(Optional.of(articulo));
+
+        var respuesta = ingresoService.anular(20);
+
+        assertEquals("0", respuesta.estado());
+        assertEquals(new BigDecimal("3.00"), articulo.getSaldo());
+        var movimiento = ArgumentCaptor.forClass(KardexMovimiento.class);
+        verify(kardexMovimientoRepository).save(movimiento.capture());
+        assertEquals(TipoMovimiento.REVERSO_INGRESO, movimiento.getValue().getTipoMovimiento());
+        assertEquals(new BigDecimal("2.00"), movimiento.getValue().getCantidadSalida());
+        assertEquals(new BigDecimal("3.00"), movimiento.getValue().getSaldoResultante());
+    }
+
+    @Test
+    void anulacionIngresoRechazaSiSaldoInsuficiente() {
+        Articulo articulo = Articulo.builder().id(10).codigo("ART-10").descripcion("Artículo")
+                .saldo(new BigDecimal("1.00")).precio(new BigDecimal("4.00"))
+                .estado("1").activo(true).build();
+        Ingreso ingreso = Ingreso.builder().id(20).prefijo("I26").correlativo(1).estado("1").build();
+        DetalleIngreso detalle = DetalleIngreso.builder().articulo(articulo)
+                .cantidad(new BigDecimal("2.00")).precio(new BigDecimal("3.50")).build();
+        when(ingresoRepository.findByIdWithLock(20)).thenReturn(Optional.of(ingreso));
+        when(detalleIngresoRepository.findByIngreso_IdOrderByIdAsc(20)).thenReturn(List.of(detalle));
+        when(articuloRepository.findByIdWithLock(10)).thenReturn(Optional.of(articulo));
+
+        assertThrows(BusinessException.class, () -> ingresoService.anular(20));
+
+        assertEquals(new BigDecimal("1.00"), articulo.getSaldo());
+        verify(kardexMovimientoRepository, never()).save(any());
     }
 
     @Test

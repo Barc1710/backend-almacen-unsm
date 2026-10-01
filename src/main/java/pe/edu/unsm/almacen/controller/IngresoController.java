@@ -43,6 +43,14 @@ public class IngresoController {
         return ResponseEntity.ok(new ApiResponse<>(true, "Ingresos listados", response));
     }
 
+    @GetMapping("/siguiente-correlativo")
+    @PreAuthorize("@moduloAccess.hasAccess(authentication, 'INGRESOS')")
+    @Operation(summary = "Obtener el siguiente número correlativo de ingreso")
+    public ResponseEntity<ApiResponse<String>> obtenerSiguienteCorrelativo() {
+        String siguiente = ingresoService.obtenerSiguienteNumeroIngreso();
+        return ResponseEntity.ok(new ApiResponse<>(true, "Siguiente número de ingreso obtenido", siguiente));
+    }
+
     @GetMapping("/{id}")
     @PreAuthorize("@moduloAccess.hasAccess(authentication, 'INGRESOS')")
     @Operation(summary = "Obtener ingreso por ID")
@@ -58,5 +66,13 @@ public class IngresoController {
         IngresoResponse response = ingresoService.registrar(request);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(new ApiResponse<>(true, "Ingreso registrado", response));
+    }
+
+    @PostMapping("/{id}/anular")
+    @PreAuthorize("@moduloAccess.hasAccess(authentication, 'INGRESOS')")
+    @Operation(summary = "Anular ingreso")
+    public ResponseEntity<ApiResponse<IngresoResponse>> anular(@PathVariable("id") Integer id) {
+        IngresoResponse response = ingresoService.anular(id);
+        return ResponseEntity.ok(new ApiResponse<>(true, "Ingreso anulado", response));
     }
 }

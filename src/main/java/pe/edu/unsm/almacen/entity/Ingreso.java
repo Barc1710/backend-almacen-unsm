@@ -13,6 +13,7 @@ import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import java.time.LocalDateTime;
+import java.time.Year;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -22,7 +23,10 @@ import org.hibernate.annotations.ColumnDefault;
 
 @Entity
 @Table(name = "ingreso",
-        uniqueConstraints = @UniqueConstraint(name = "uq_ingreso_orden_compra", columnNames = {"numero_orden_compra"}))
+        uniqueConstraints = {
+                @UniqueConstraint(name = "uq_ingreso_prefijo_correlativo", columnNames = {"prefijo", "correlativo"}),
+                @UniqueConstraint(name = "uq_ingreso_orden_compra", columnNames = {"numero_orden_compra"})
+        })
 @Getter
 @Setter
 @NoArgsConstructor
@@ -39,6 +43,19 @@ public class Ingreso {
     @JoinColumn(name = "id_proveedor", referencedColumnName = "id", nullable = false,
             foreignKey = @ForeignKey(name = "fk_ingreso_proveedor"))
     private Proveedor proveedor;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "id_usuario", referencedColumnName = "id_usuario",
+            foreignKey = @ForeignKey(name = "fk_ingreso_usuario"))
+    private Usuario usuario;
+
+    @Column(name = "prefijo", nullable = false, length = 10)
+    @ColumnDefault("''")
+    private String prefijo;
+
+    @Column(name = "correlativo", nullable = false)
+    @ColumnDefault("0")
+    private Integer correlativo;
 
     @Column(name = "numero_orden_compra", nullable = true, length = 50)
     private String numeroOrdenCompra;
@@ -62,5 +79,19 @@ public class Ingreso {
         if (this.estado == null || this.estado.isBlank()) {
             this.estado = "1";
         }
+        if (this.prefijo == null) {
+            this.prefijo = "";
+        }
+        if (this.correlativo == null) {
+            this.correlativo = 0;
+        }
+    }
+
+    public String getNumeroCompleto() {
+        String p = (prefijo != null && !prefijo.isBlank())
+                ? prefijo
+                : "I" + String.format("%02d", Year.now().getValue() % 100);
+        int c = correlativo != null ? correlativo : 0;
+        return String.format("%s-%04d", p, c);
     }
 }
