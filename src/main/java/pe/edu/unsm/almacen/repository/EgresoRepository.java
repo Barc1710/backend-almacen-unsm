@@ -11,6 +11,7 @@ import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import pe.edu.unsm.almacen.entity.Egreso;
+import pe.edu.unsm.almacen.entity.TipoEgreso;
 
 public interface EgresoRepository extends JpaRepository<Egreso, Integer> {
 
@@ -25,23 +26,51 @@ public interface EgresoRepository extends JpaRepository<Egreso, Integer> {
         SELECT e FROM Egreso e
         WHERE (:idCliente IS NULL OR e.cliente.id = :idCliente)
           AND (:idArea IS NULL OR e.area.id = :idArea)
+          AND (:tipoEgreso IS NULL OR e.tipoEgreso = :tipoEgreso)
           AND (:desde IS NULL OR e.fecha >= :desde)
           AND (:hasta IS NULL OR e.fecha <= :hasta)
           AND (:estado IS NULL OR e.estado = :estado)
+          AND (
+               (:filtro IS NULL AND :correlativo IS NULL)
+               OR
+               (:correlativo IS NOT NULL AND e.correlativo = :correlativo AND (:prefijo IS NULL OR UPPER(e.prefijo) = UPPER(:prefijo)))
+               OR
+               (:filtro IS NOT NULL AND (
+                   LOWER(e.prefijo) LIKE LOWER(CONCAT('%', :filtro, '%')) OR
+                   LOWER(e.cliente.nombre) LIKE LOWER(CONCAT('%', :filtro, '%')) OR
+                   LOWER(e.area.nombre) LIKE LOWER(CONCAT('%', :filtro, '%'))
+               ))
+          )
         ORDER BY e.fecha DESC, e.id DESC
         """,
         countQuery = """
         SELECT COUNT(e) FROM Egreso e
         WHERE (:idCliente IS NULL OR e.cliente.id = :idCliente)
           AND (:idArea IS NULL OR e.area.id = :idArea)
+          AND (:tipoEgreso IS NULL OR e.tipoEgreso = :tipoEgreso)
           AND (:desde IS NULL OR e.fecha >= :desde)
           AND (:hasta IS NULL OR e.fecha <= :hasta)
           AND (:estado IS NULL OR e.estado = :estado)
+          AND (
+               (:filtro IS NULL AND :correlativo IS NULL)
+               OR
+               (:correlativo IS NOT NULL AND e.correlativo = :correlativo AND (:prefijo IS NULL OR UPPER(e.prefijo) = UPPER(:prefijo)))
+               OR
+               (:filtro IS NOT NULL AND (
+                   LOWER(e.prefijo) LIKE LOWER(CONCAT('%', :filtro, '%')) OR
+                   LOWER(e.cliente.nombre) LIKE LOWER(CONCAT('%', :filtro, '%')) OR
+                   LOWER(e.area.nombre) LIKE LOWER(CONCAT('%', :filtro, '%'))
+               ))
+          )
         """)
-    @EntityGraph(attributePaths = {"cliente", "encargado", "area", "encargadoAlmacen"})
+    @EntityGraph(attributePaths = {"cliente", "encargado", "area", "encargadoAlmacen", "usuario"})
     Page<Egreso> listarPaginado(
+            @Param("filtro") String filtro,
+            @Param("correlativo") Integer correlativo,
+            @Param("prefijo") String prefijo,
             @Param("idCliente") Integer idCliente,
             @Param("idArea") Integer idArea,
+            @Param("tipoEgreso") TipoEgreso tipoEgreso,
             @Param("desde") LocalDateTime desde,
             @Param("hasta") LocalDateTime hasta,
             @Param("estado") String estado,
@@ -49,6 +78,6 @@ public interface EgresoRepository extends JpaRepository<Egreso, Integer> {
     );
 
     @Override
-    @EntityGraph(attributePaths = {"cliente", "encargado", "area", "encargadoAlmacen"})
+    @EntityGraph(attributePaths = {"cliente", "encargado", "area", "encargadoAlmacen", "usuario"})
     Optional<Egreso> findById(Integer id);
 }

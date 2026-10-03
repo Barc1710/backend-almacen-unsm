@@ -22,6 +22,7 @@ import pe.edu.unsm.almacen.dto.common.ApiResponse;
 import pe.edu.unsm.almacen.dto.common.PageResponse;
 import pe.edu.unsm.almacen.dto.request.EgresoCreateRequest;
 import pe.edu.unsm.almacen.dto.response.EgresoResponse;
+import pe.edu.unsm.almacen.entity.TipoEgreso;
 import pe.edu.unsm.almacen.service.IEgresoService;
 
 @RestController
@@ -36,13 +37,15 @@ public class EgresoController {
     @PreAuthorize("@moduloAccess.hasAccess(authentication, 'EGRESOS')")
     @Operation(summary = "Listar egresos paginados")
     public ResponseEntity<ApiResponse<PageResponse<EgresoResponse>>> listar(
+            @RequestParam(name = "filtro", required = false) String filtro,
             @RequestParam(name = "idCliente", required = false) Integer idCliente,
             @RequestParam(name = "idArea", required = false) Integer idArea,
+            @RequestParam(name = "tipoEgreso", required = false) TipoEgreso tipoEgreso,
             @RequestParam(name = "desde", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate desde,
             @RequestParam(name = "hasta", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate hasta,
             @RequestParam(name = "estado", required = false) String estado,
             Pageable pageable) {
-        PageResponse<EgresoResponse> response = egresoService.listar(idCliente, idArea, desde, hasta, estado, pageable);
+        PageResponse<EgresoResponse> response = egresoService.listar(filtro, idCliente, idArea, tipoEgreso, desde, hasta, estado, pageable);
         return ResponseEntity.ok(new ApiResponse<>(true, "Egresos listados", response));
     }
 

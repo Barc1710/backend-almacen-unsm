@@ -241,6 +241,29 @@ class MovimientosServiceTest {
     }
 
     @Test
+    void egresoIncluyeUnidadRealAlRegistrarYConsultar() {
+        Articulo articulo = articuloConCincoUnidades();
+        articulo.setUnidadMedida(UnidadMedida.builder().simbolo("KG").permiteDecimales(true).build());
+        prepararEgreso(articulo);
+        when(detalleEgresoRepository.save(any(DetalleEgreso.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        var registrado = egresoService.registrar(solicitudEgreso("2.50"));
+        assertEquals("KG", registrado.detalles().getFirst().simboloUnidadMedida());
+        assertEquals(Boolean.TRUE, registrado.detalles().getFirst().permiteDecimales());
+
+        when(egresoRepository.findById(21)).thenReturn(Optional.of(
+                Egreso.builder().id(21).prefijo("EGR").correlativo(1).estado("1").build()));
+        when(detalleEgresoRepository.findByEgreso_IdOrderByIdAsc(21)).thenReturn(List.of(
+                DetalleEgreso.builder().articulo(articulo).cantidad(new BigDecimal("2.50"))
+                        .precio(new BigDecimal("4.00")).build()));
+
+        var consultado = egresoService.obtenerPorId(21);
+        assertEquals("KG", consultado.detalles().getFirst().simboloUnidadMedida());
+        assertEquals(Boolean.TRUE, consultado.detalles().getFirst().permiteDecimales());
+        assertEquals(new BigDecimal("2.50"), consultado.detalles().getFirst().cantidad());
+    }
+
+    @Test
     void anulacionDevuelveExistenciasYRegistraReverso() {
         Articulo articulo = articuloConCincoUnidades();
         Egreso egreso = Egreso.builder().id(21).prefijo("EGR").correlativo(1).estado("1").build();

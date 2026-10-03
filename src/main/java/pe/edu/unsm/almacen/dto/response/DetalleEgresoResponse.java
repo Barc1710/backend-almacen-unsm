@@ -14,6 +14,8 @@ public record DetalleEgresoResponse(
         BigDecimal subtotal,
         BigDecimal saldo,
         LocalDateTime fecha,
-        String tipo
+        String tipo,
+        String simboloUnidadMedida,
+        Boolean permiteDecimales
 ) {
 }

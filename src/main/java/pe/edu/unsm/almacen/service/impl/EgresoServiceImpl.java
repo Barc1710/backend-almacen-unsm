@@ -11,8 +11,8 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 import java.util.Set;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -73,11 +73,47 @@ public class EgresoServiceImpl implements IEgresoService {
 
     @Override
     @Transactional(readOnly = true)
-    public PageResponse<EgresoResponse> listar(Integer idCliente, Integer idArea, LocalDate desde, LocalDate hasta, String estado, Pageable pageable) {
+    public PageResponse<EgresoResponse> listar(String filtro, Integer idCliente, Integer idArea, TipoEgreso tipoEgreso, LocalDate desde, LocalDate hasta, String estado, Pageable pageable) {
         LocalDateTime desdeDateTime = desde != null ? desde.atStartOfDay() : null;
         LocalDateTime hastaDateTime = hasta != null ? hasta.atTime(23, 59, 59) : null;
+        String filtroLimpio = (filtro != null && !filtro.trim().isEmpty()) ? filtro.trim() : null;
+        Integer correlativoFiltro = null;
+        String prefijoFiltro = null;
 
-        Page<Egreso> page = egresoRepository.listarPaginado(idCliente, idArea, desdeDateTime, hastaDateTime, estado, pageable);
+        if (filtroLimpio != null) {
+            if (filtroLimpio.contains("-")) {
+                int guionIdx = filtroLimpio.indexOf('-');
+                String partePrefijo = filtroLimpio.substring(0, guionIdx).trim();
+                String parteNumero = filtroLimpio.substring(guionIdx + 1).trim();
+                try {
+                    correlativoFiltro = Integer.parseInt(parteNumero);
+                    if (!partePrefijo.isEmpty()) {
+                        prefijoFiltro = partePrefijo;
+                    }
+                } catch (NumberFormatException ignored) {
+                    // Si tras el guión no es numérico, se mantiene búsqueda por texto libre
+                }
+            } else {
+                try {
+                    correlativoFiltro = Integer.parseInt(filtroLimpio);
+                } catch (NumberFormatException ignored) {
+                    // Texto libre no numérico
+                }
+            }
+        }
+
+        Page<Egreso> page = egresoRepository.listarPaginado(
+                filtroLimpio,
+                correlativoFiltro,
+                prefijoFiltro,
+                idCliente,
+                idArea,
+                tipoEgreso,
+                desdeDateTime,
+                hastaDateTime,
+                estado,
+                pageable
+        );
         List<Integer> ids = page.getContent().stream().map(Egreso::getId).toList();
         Map<Integer, BigDecimal> totales = ids.isEmpty() ? Map.of()
                 : detalleEgresoRepository.sumarTotalesPorEgresoIds(ids).stream()
@@ -247,7 +283,9 @@ public class EgresoServiceImpl implements IEgresoService {
                     subtotal,
                     detalleGuardado.getSaldo(),
                     detalleGuardado.getFecha(),
-                    detalleGuardado.getTipo()
+                    detalleGuardado.getTipo(),
+                    articulo.getUnidadMedida() != null ? articulo.getUnidadMedida().getSimbolo() : null,
+                    articulo.getUnidadMedida() != null ? articulo.getUnidadMedida().getPermiteDecimales() : null
             ));
         }
 
@@ -341,7 +379,11 @@ public class EgresoServiceImpl implements IEgresoService {
                     subtotal,
                     d.getSaldo(),
                     d.getFecha(),
-                    d.getTipo()
+                    d.getTipo(),
+                    d.getArticulo() != null && d.getArticulo().getUnidadMedida() != null
+                            ? d.getArticulo().getUnidadMedida().getSimbolo() : null,
+                    d.getArticulo() != null && d.getArticulo().getUnidadMedida() != null
+                            ? d.getArticulo().getUnidadMedida().getPermiteDecimales() : null
             ));
         }
 
