@@ -65,11 +65,44 @@ public class IngresoServiceImpl implements IIngresoService {
 
     @Override
     @Transactional(readOnly = true)
-    public PageResponse<IngresoResponse> listar(Integer idProveedor, LocalDate desde, LocalDate hasta, Pageable pageable) {
+    public PageResponse<IngresoResponse> listar(String filtro, Integer idProveedor, LocalDate desde, LocalDate hasta, Pageable pageable) {
         LocalDateTime desdeDateTime = desde != null ? desde.atStartOfDay() : null;
         LocalDateTime hastaDateTime = hasta != null ? hasta.atTime(23, 59, 59) : null;
+        String filtroLimpio = (filtro != null && !filtro.trim().isEmpty()) ? filtro.trim() : null;
+        Integer correlativoFiltro = null;
+        String prefijoFiltro = null;
 
-        Page<Ingreso> page = ingresoRepository.listarPaginado(idProveedor, desdeDateTime, hastaDateTime, pageable);
+        if (filtroLimpio != null) {
+            if (filtroLimpio.contains("-")) {
+                int guionIdx = filtroLimpio.indexOf('-');
+                String partePrefijo = filtroLimpio.substring(0, guionIdx).trim();
+                String parteNumero = filtroLimpio.substring(guionIdx + 1).trim();
+                try {
+                    correlativoFiltro = Integer.parseInt(parteNumero);
+                    if (!partePrefijo.isEmpty()) {
+                        prefijoFiltro = partePrefijo;
+                    }
+                } catch (NumberFormatException ignored) {
+                    // Si tras el guión no es numérico, se mantiene búsqueda por texto libre
+                }
+            } else {
+                try {
+                    correlativoFiltro = Integer.parseInt(filtroLimpio);
+                } catch (NumberFormatException ignored) {
+                    // Texto libre no numérico
+                }
+            }
+        }
+
+        Page<Ingreso> page = ingresoRepository.listarPaginado(
+                filtroLimpio,
+                correlativoFiltro,
+                prefijoFiltro,
+                idProveedor,
+                desdeDateTime,
+                hastaDateTime,
+                pageable
+        );
         List<Integer> ids = page.getContent().stream().map(Ingreso::getId).toList();
 
         Map<Integer, BigDecimal> totales = new java.util.HashMap<>();

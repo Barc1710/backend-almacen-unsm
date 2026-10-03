@@ -39,11 +39,12 @@ public class IngresoController {
     @PreAuthorize("@moduloAccess.hasAccess(authentication, 'INGRESOS')")
     @Operation(summary = "Listar ingresos paginados")
     public ResponseEntity<ApiResponse<PageResponse<IngresoResponse>>> listar(
+            @RequestParam(name = "filtro", required = false) String filtro,
             @RequestParam(name = "idProveedor", required = false) Integer idProveedor,
             @RequestParam(name = "desde", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate desde,
             @RequestParam(name = "hasta", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate hasta,
             Pageable pageable) {
-        PageResponse<IngresoResponse> response = ingresoService.listar(idProveedor, desde, hasta, pageable);
+        PageResponse<IngresoResponse> response = ingresoService.listar(filtro, idProveedor, desde, hasta, pageable);
         return ResponseEntity.ok(new ApiResponse<>(true, "Ingresos listados", response));
     }
 
