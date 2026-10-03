@@ -37,8 +37,8 @@ public class Egreso {
     @Column(name = "id", nullable = false)
     private Integer id;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "id_cliente", referencedColumnName = "id", nullable = false,
+    @ManyToOne(fetch = FetchType.LAZY, optional = true)
+    @JoinColumn(name = "id_cliente", referencedColumnName = "id", nullable = true,
             foreignKey = @ForeignKey(name = "fk_egreso_cliente"))
     private Cliente cliente;
 
@@ -50,8 +50,8 @@ public class Egreso {
     @Column(name = "nombre_encargado_libre", nullable = true, length = 150)
     private String nombreEncargadoLibre;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "id_area", referencedColumnName = "id", nullable = false,
+    @ManyToOne(fetch = FetchType.LAZY, optional = true)
+    @JoinColumn(name = "id_area", referencedColumnName = "id", nullable = true,
             foreignKey = @ForeignKey(name = "fk_egreso_area"))
     private Area area;
 
@@ -80,6 +80,9 @@ public class Egreso {
     @Column(name = "tipo_egreso", nullable = false, length = 30)
     @ColumnDefault("'DESPACHO_ORDINARIO'")
     private TipoEgreso tipoEgreso;
+
+    @Column(name = "motivo_baja", nullable = true, length = 255)
+    private String motivoBaja;
 
     @Column(name = "fecha", nullable = false, columnDefinition = "datetime")
     @ColumnDefault("CURRENT_TIMESTAMP")

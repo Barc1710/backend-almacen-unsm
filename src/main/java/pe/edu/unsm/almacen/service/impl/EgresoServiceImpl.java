@@ -153,10 +153,18 @@ public class EgresoServiceImpl implements IEgresoService {
             if (!esAdmin) {
                 throw new AccessDeniedException("Solo ADMINISTRADOR puede registrar una baja.");
             }
+            if (request.motivoBaja() == null || request.motivoBaja().trim().isEmpty()) {
+                throw new BusinessException("El motivo o justificación de la baja es obligatorio.");
+            }
         }
 
-        Cliente cliente = clienteRepository.findById(request.idCliente())
-                .orElseThrow(() -> new ResourceNotFoundException("Cliente no encontrado con ID: " + request.idCliente()));
+        Cliente cliente = null;
+        if (request.idCliente() != null) {
+            cliente = clienteRepository.findById(request.idCliente())
+                    .orElseThrow(() -> new ResourceNotFoundException("Cliente no encontrado con ID: " + request.idCliente()));
+        } else if (tipoEgreso == TipoEgreso.DESPACHO_ORDINARIO) {
+            throw new BusinessException("El cliente es obligatorio para despacho ordinario.");
+        }
 
         Encargado encargado = null;
         String nombreEncargadoLibre = null;
@@ -165,12 +173,18 @@ public class EgresoServiceImpl implements IEgresoService {
                     .orElseThrow(() -> new ResourceNotFoundException("Encargado no encontrado con ID: " + request.idEncargado()));
         } else if (request.nombreEncargadoLibre() != null && !request.nombreEncargadoLibre().trim().isEmpty()) {
             nombreEncargadoLibre = request.nombreEncargadoLibre().trim();
-        } else {
+        } else if (tipoEgreso == TipoEgreso.DESPACHO_ORDINARIO) {
             throw new BusinessException("Indica un encargado o su nombre.");
         }
 
-        Area area = areaRepository.findById(request.idArea())
-                .orElseThrow(() -> new ResourceNotFoundException("Área no encontrada con ID: " + request.idArea()));
+        Area area = null;
+        if (request.idArea() != null) {
+            area = areaRepository.findById(request.idArea())
+                    .orElseThrow(() -> new ResourceNotFoundException("Área no encontrada con ID: " + request.idArea()));
+        } else if (tipoEgreso == TipoEgreso.DESPACHO_ORDINARIO) {
+            throw new BusinessException("El área es obligatoria para despacho ordinario.");
+        }
+
         EncargadoAlmacen encargadoAlmacen = encargadoAlmacenRepository.findById(request.idEncargadoAlmacen())
                 .orElseThrow(() -> new ResourceNotFoundException("Encargado de almacén no encontrado con ID: " + request.idEncargadoAlmacen()));
 
@@ -194,6 +208,7 @@ public class EgresoServiceImpl implements IEgresoService {
                 .prefijo(prefijo)
                 .correlativo(nuevoCorrelativo)
                 .tipoEgreso(tipoEgreso)
+                .motivoBaja(request.motivoBaja() != null ? request.motivoBaja().trim() : null)
                 .fecha(LocalDateTime.now())
                 .estado("1")
                 .build();
@@ -413,6 +428,7 @@ public class EgresoServiceImpl implements IEgresoService {
                 egreso.getCorrelativo(),
                 egreso.getNumeroCompleto(),
                 egreso.getTipoEgreso() != null ? egreso.getTipoEgreso().name() : "DESPACHO_ORDINARIO",
+                egreso.getMotivoBaja(),
                 egreso.getFecha(),
                 egreso.getEstado(),
                 total,

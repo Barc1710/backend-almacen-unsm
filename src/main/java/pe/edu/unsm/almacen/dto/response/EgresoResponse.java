@@ -22,6 +22,7 @@ public record EgresoResponse(
         Integer correlativo,
         String numeroCompleto,
         String tipoEgreso,
+        String motivoBaja,
         LocalDateTime fecha,
         String estado,
         BigDecimal total,

@@ -8,6 +8,8 @@ import java.time.LocalDate;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -23,6 +25,7 @@ import pe.edu.unsm.almacen.dto.common.PageResponse;
 import pe.edu.unsm.almacen.dto.request.EgresoCreateRequest;
 import pe.edu.unsm.almacen.dto.response.EgresoResponse;
 import pe.edu.unsm.almacen.entity.TipoEgreso;
+import pe.edu.unsm.almacen.service.IEgresoReporteService;
 import pe.edu.unsm.almacen.service.IEgresoService;
 
 @RestController
@@ -32,6 +35,7 @@ import pe.edu.unsm.almacen.service.IEgresoService;
 public class EgresoController {
 
     private final IEgresoService egresoService;
+    private final IEgresoReporteService egresoReporteService;
 
     @GetMapping
     @PreAuthorize("@moduloAccess.hasAccess(authentication, 'EGRESOS')")
@@ -76,5 +80,22 @@ public class EgresoController {
     public ResponseEntity<ApiResponse<EgresoResponse>> anular(@PathVariable("id") Integer id) {
         EgresoResponse response = egresoService.anular(id);
         return ResponseEntity.ok(new ApiResponse<>(true, "Egreso anulado", response));
+    }
+
+    @GetMapping(value = {"/{id}/reporte-pdf", "/{id}/pdf"}, produces = MediaType.APPLICATION_PDF_VALUE)
+    @PreAuthorize("@moduloAccess.hasAccess(authentication, 'EGRESOS')")
+    @Operation(summary = "Descargar reporte PDF del comprobante de egreso")
+    public ResponseEntity<byte[]> descargarReportePdf(@PathVariable("id") Integer id) {
+        byte[] pdfBytes = egresoReporteService.generarReportePdf(id);
+        EgresoResponse egreso = egresoService.obtenerPorId(id);
+        String numeroDoc = (egreso != null && egreso.numeroCompleto() != null)
+                ? egreso.numeroCompleto()
+                : ("EGR-" + id);
+        String filename = "egreso_" + numeroDoc + ".pdf";
+
+        return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_PDF)
+                .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + filename + "\"")
+                .body(pdfBytes);
     }
 }

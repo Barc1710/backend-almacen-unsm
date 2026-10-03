@@ -24,8 +24,10 @@ public interface EgresoRepository extends JpaRepository<Egreso, Integer> {
 
     @Query(value = """
         SELECT e FROM Egreso e
-        WHERE (:idCliente IS NULL OR e.cliente.id = :idCliente)
-          AND (:idArea IS NULL OR e.area.id = :idArea)
+        LEFT JOIN e.cliente c
+        LEFT JOIN e.area a
+        WHERE (:idCliente IS NULL OR c.id = :idCliente)
+          AND (:idArea IS NULL OR a.id = :idArea)
           AND (:tipoEgreso IS NULL OR e.tipoEgreso = :tipoEgreso)
           AND (:desde IS NULL OR e.fecha >= :desde)
           AND (:hasta IS NULL OR e.fecha <= :hasta)
@@ -37,16 +39,19 @@ public interface EgresoRepository extends JpaRepository<Egreso, Integer> {
                OR
                (:filtro IS NOT NULL AND (
                    LOWER(e.prefijo) LIKE LOWER(CONCAT('%', :filtro, '%')) OR
-                   LOWER(e.cliente.nombre) LIKE LOWER(CONCAT('%', :filtro, '%')) OR
-                   LOWER(e.area.nombre) LIKE LOWER(CONCAT('%', :filtro, '%'))
+                   (c.nombre IS NOT NULL AND LOWER(c.nombre) LIKE LOWER(CONCAT('%', :filtro, '%'))) OR
+                   (a.nombre IS NOT NULL AND LOWER(a.nombre) LIKE LOWER(CONCAT('%', :filtro, '%'))) OR
+                   (e.motivoBaja IS NOT NULL AND LOWER(e.motivoBaja) LIKE LOWER(CONCAT('%', :filtro, '%')))
                ))
           )
         ORDER BY e.fecha DESC, e.id DESC
         """,
         countQuery = """
         SELECT COUNT(e) FROM Egreso e
-        WHERE (:idCliente IS NULL OR e.cliente.id = :idCliente)
-          AND (:idArea IS NULL OR e.area.id = :idArea)
+        LEFT JOIN e.cliente c
+        LEFT JOIN e.area a
+        WHERE (:idCliente IS NULL OR c.id = :idCliente)
+          AND (:idArea IS NULL OR a.id = :idArea)
           AND (:tipoEgreso IS NULL OR e.tipoEgreso = :tipoEgreso)
           AND (:desde IS NULL OR e.fecha >= :desde)
           AND (:hasta IS NULL OR e.fecha <= :hasta)
@@ -58,8 +63,9 @@ public interface EgresoRepository extends JpaRepository<Egreso, Integer> {
                OR
                (:filtro IS NOT NULL AND (
                    LOWER(e.prefijo) LIKE LOWER(CONCAT('%', :filtro, '%')) OR
-                   LOWER(e.cliente.nombre) LIKE LOWER(CONCAT('%', :filtro, '%')) OR
-                   LOWER(e.area.nombre) LIKE LOWER(CONCAT('%', :filtro, '%'))
+                   (c.nombre IS NOT NULL AND LOWER(c.nombre) LIKE LOWER(CONCAT('%', :filtro, '%'))) OR
+                   (a.nombre IS NOT NULL AND LOWER(a.nombre) LIKE LOWER(CONCAT('%', :filtro, '%'))) OR
+                   (e.motivoBaja IS NOT NULL AND LOWER(e.motivoBaja) LIKE LOWER(CONCAT('%', :filtro, '%')))
                ))
           )
         """)
