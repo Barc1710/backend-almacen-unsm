@@ -33,6 +33,7 @@ import pe.edu.unsm.almacen.entity.DetalleIngreso;
 import pe.edu.unsm.almacen.entity.Egreso;
 import pe.edu.unsm.almacen.entity.Ingreso;
 import pe.edu.unsm.almacen.entity.KardexMovimiento;
+import pe.edu.unsm.almacen.entity.Encargado;
 import pe.edu.unsm.almacen.entity.EncargadoAlmacen;
 import pe.edu.unsm.almacen.entity.Proveedor;
 import pe.edu.unsm.almacen.entity.TipoMovimiento;
@@ -94,6 +95,10 @@ class MovimientosServiceTest {
         when(proveedorRepository.findById(1))
                 .thenReturn(Optional.of(Proveedor.builder().id(1).razonSocial("Proveedor").build()));
         when(articuloRepository.findByIdWithLock(10)).thenReturn(Optional.of(articulo));
+        when(encargadoAlmacenRepository.findFirstByEsTitularTrueAndEstado("1"))
+                .thenReturn(Optional.of(EncargadoAlmacen.builder().id(5).nombre("Almacenero Titular").build()));
+        when(encargadoRepository.findByEstadoOrderByApellidosAsc("1"))
+                .thenReturn(List.of(Encargado.builder().id(8).nombres("Carlos").apellidos("García").build()));
         when(ingresoRepository.save(any(Ingreso.class))).thenAnswer(invocation -> {
             Ingreso ingreso = invocation.getArgument(0);
             ingreso.setId(20);
@@ -111,14 +116,57 @@ class MovimientosServiceTest {
         assertEquals(new BigDecimal("7.00"), articulo.getSaldo());
         assertEquals(new BigDecimal("7.00"), respuesta.total());
         assertEquals("Ana Pérez", respuesta.nombreUsuario());
+        assertEquals("Almacenero Titular", respuesta.nombreEncargadoAlmacen());
+        assertEquals("Carlos García", respuesta.nombreJefe());
         var captorIngreso = ArgumentCaptor.forClass(Ingreso.class);
         verify(ingresoRepository).save(captorIngreso.capture());
         assertEquals(1, captorIngreso.getValue().getUsuario().getIdUsuario());
+        assertEquals("Almacenero Titular", captorIngreso.getValue().getNombreEncargadoAlmacen());
+        assertEquals("Carlos García", captorIngreso.getValue().getNombreJefe());
 
         var movimiento = ArgumentCaptor.forClass(KardexMovimiento.class);
         verify(kardexMovimientoRepository).save(movimiento.capture());
         assertEquals(TipoMovimiento.INGRESO, movimiento.getValue().getTipoMovimiento());
         assertEquals(new BigDecimal("7.00"), movimiento.getValue().getSaldoResultante());
+    }
+
+    @Test
+    void ingresoConFirmantesEspecificosGuardaRelacionYSnapshot() {
+        Articulo articulo = articuloConCincoUnidades();
+        when(proveedorRepository.findById(1))
+                .thenReturn(Optional.of(Proveedor.builder().id(1).razonSocial("Proveedor").build()));
+        when(articuloRepository.findByIdWithLock(10)).thenReturn(Optional.of(articulo));
+        when(encargadoAlmacenRepository.findById(5))
+                .thenReturn(Optional.of(EncargadoAlmacen.builder().id(5).nombre("Luis Almacén").build()));
+        when(encargadoRepository.findById(9))
+                .thenReturn(Optional.of(Encargado.builder().id(9).nombres("María").apellidos("Torres").build()));
+        when(ingresoRepository.save(any(Ingreso.class))).thenAnswer(invocation -> {
+            Ingreso ingreso = invocation.getArgument(0);
+            ingreso.setId(22);
+            return ingreso;
+        });
+        when(detalleIngresoRepository.save(any(DetalleIngreso.class))).thenAnswer(invocation -> {
+            DetalleIngreso detalle = invocation.getArgument(0);
+            detalle.setId(31);
+            return detalle;
+        });
+
+        var request = new IngresoCreateRequest(1, "OC-99", "Recepción especial", 5, 9,
+                List.of(new DetalleItemRequest(10, new BigDecimal("1.00"), new BigDecimal("5.00"))));
+
+        var respuesta = ingresoService.registrar(request);
+
+        assertEquals("Luis Almacén", respuesta.nombreEncargadoAlmacen());
+        assertEquals("María Torres", respuesta.nombreJefe());
+        assertEquals(5, respuesta.idEncargadoAlmacen());
+        assertEquals(9, respuesta.idJefe());
+
+        var captorIngreso = ArgumentCaptor.forClass(Ingreso.class);
+        verify(ingresoRepository).save(captorIngreso.capture());
+        assertEquals("Luis Almacén", captorIngreso.getValue().getNombreEncargadoAlmacen());
+        assertEquals("María Torres", captorIngreso.getValue().getNombreJefe());
+        assertEquals(5, captorIngreso.getValue().getEncargadoAlmacen().getId());
+        assertEquals(9, captorIngreso.getValue().getJefe().getId());
     }
 
     @Test

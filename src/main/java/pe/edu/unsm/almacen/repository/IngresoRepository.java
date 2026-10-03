@@ -14,7 +14,7 @@ import pe.edu.unsm.almacen.entity.Ingreso;
 
 public interface IngresoRepository extends JpaRepository<Ingreso, Integer> {
 
-    @EntityGraph(attributePaths = {"proveedor", "usuario"})
+    @EntityGraph(attributePaths = {"proveedor", "usuario", "encargadoAlmacen", "jefe"})
     @Query(value = "SELECT i FROM Ingreso i WHERE " +
            "(:idProveedor IS NULL OR i.proveedor.id = :idProveedor) AND " +
            "(:desde IS NULL OR i.fecha >= :desde) AND " +
@@ -31,7 +31,7 @@ public interface IngresoRepository extends JpaRepository<Ingreso, Integer> {
             Pageable pageable
     );
 
-    @EntityGraph(attributePaths = {"proveedor", "usuario"})
+    @EntityGraph(attributePaths = {"proveedor", "usuario", "encargadoAlmacen", "jefe"})
     @Override
     Optional<Ingreso> findById(Integer id);
 
@@ -43,6 +43,4 @@ public interface IngresoRepository extends JpaRepository<Ingreso, Integer> {
 
     @Query("SELECT MAX(i.correlativo) FROM Ingreso i WHERE i.prefijo = :prefijo")
     Integer obtenerMaximoCorrelativo(@Param("prefijo") String prefijo);
-
-    boolean existsByPrefijoAndCorrelativo(String prefijo, Integer correlativo);
 }

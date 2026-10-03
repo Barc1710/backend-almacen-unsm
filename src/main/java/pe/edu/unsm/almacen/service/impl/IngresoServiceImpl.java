@@ -28,6 +28,8 @@ import pe.edu.unsm.almacen.dto.response.DetalleIngresoResponse;
 import pe.edu.unsm.almacen.dto.response.IngresoResponse;
 import pe.edu.unsm.almacen.entity.Articulo;
 import pe.edu.unsm.almacen.entity.DetalleIngreso;
+import pe.edu.unsm.almacen.entity.Encargado;
+import pe.edu.unsm.almacen.entity.EncargadoAlmacen;
 import pe.edu.unsm.almacen.entity.Ingreso;
 import pe.edu.unsm.almacen.entity.KardexMovimiento;
 import pe.edu.unsm.almacen.entity.Proveedor;
@@ -38,6 +40,8 @@ import pe.edu.unsm.almacen.exception.DuplicateResourceException;
 import pe.edu.unsm.almacen.exception.ResourceNotFoundException;
 import pe.edu.unsm.almacen.repository.ArticuloRepository;
 import pe.edu.unsm.almacen.repository.DetalleIngresoRepository;
+import pe.edu.unsm.almacen.repository.EncargadoAlmacenRepository;
+import pe.edu.unsm.almacen.repository.EncargadoRepository;
 import pe.edu.unsm.almacen.repository.IngresoRepository;
 import pe.edu.unsm.almacen.repository.KardexMovimientoRepository;
 import pe.edu.unsm.almacen.repository.ProveedorRepository;
@@ -56,6 +60,8 @@ public class IngresoServiceImpl implements IIngresoService {
     private final ProveedorRepository proveedorRepository;
     private final KardexMovimientoRepository kardexMovimientoRepository;
     private final UsuarioRepository usuarioRepository;
+    private final EncargadoAlmacenRepository encargadoAlmacenRepository;
+    private final EncargadoRepository encargadoRepository;
 
     @Override
     @Transactional(readOnly = true)
@@ -133,9 +139,34 @@ public class IngresoServiceImpl implements IIngresoService {
 
         Usuario usuarioActual = obtenerUsuarioActual();
 
+        // Resolver Encargado de Almacén (titular activo por defecto si no se especificó)
+        EncargadoAlmacen encargadoAlmacen = null;
+        if (request.idEncargadoAlmacen() != null) {
+            encargadoAlmacen = encargadoAlmacenRepository.findById(request.idEncargadoAlmacen())
+                    .orElseThrow(() -> new ResourceNotFoundException("Encargado de almacén no encontrado con ID: " + request.idEncargadoAlmacen()));
+        } else {
+            encargadoAlmacen = encargadoAlmacenRepository.findFirstByEsTitularTrueAndEstado("1")
+                    .orElseGet(() -> encargadoAlmacenRepository.findByEstadoOrderByNombreAsc("1").stream().findFirst().orElse(null));
+        }
+        String nombreEncargadoAlmacen = encargadoAlmacen != null ? encargadoAlmacen.getNombre() : null;
+
+        // Resolver Jefe USG (primer jefe activo por defecto si no se especificó)
+        Encargado jefe = null;
+        if (request.idJefe() != null) {
+            jefe = encargadoRepository.findById(request.idJefe())
+                    .orElseThrow(() -> new ResourceNotFoundException("Jefe no encontrado con ID: " + request.idJefe()));
+        } else {
+            jefe = encargadoRepository.findByEstadoOrderByApellidosAsc("1").stream().findFirst().orElse(null);
+        }
+        String nombreJefe = jefe != null ? jefe.getNombreCompleto() : null;
+
         Ingreso ingreso = Ingreso.builder()
                 .proveedor(proveedor)
                 .usuario(usuarioActual)
+                .encargadoAlmacen(encargadoAlmacen)
+                .jefe(jefe)
+                .nombreEncargadoAlmacen(nombreEncargadoAlmacen)
+                .nombreJefe(nombreJefe)
                 .prefijo(prefijo)
                 .correlativo(nuevoCorrelativo)
                 .numeroOrdenCompra(ordenCompraLimpia)
@@ -324,6 +355,10 @@ public class IngresoServiceImpl implements IIngresoService {
                 ingreso.getProveedor() != null ? ingreso.getProveedor().getRuc() : null,
                 ingreso.getUsuario() != null ? ingreso.getUsuario().getId() : null,
                 ingreso.getUsuario() != null ? ingreso.getUsuario().getNombreCompleto() : null,
+                ingreso.getEncargadoAlmacen() != null ? ingreso.getEncargadoAlmacen().getId() : null,
+                ingreso.getNombreEncargadoAlmacen() != null ? ingreso.getNombreEncargadoAlmacen() : (ingreso.getEncargadoAlmacen() != null ? ingreso.getEncargadoAlmacen().getNombre() : null),
+                ingreso.getJefe() != null ? ingreso.getJefe().getId() : null,
+                ingreso.getNombreJefe() != null ? ingreso.getNombreJefe() : (ingreso.getJefe() != null ? ingreso.getJefe().getNombreCompleto() : null),
                 ingreso.getPrefijo(),
                 ingreso.getCorrelativo(),
                 ingreso.getNumeroCompleto(),

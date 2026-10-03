@@ -49,6 +49,22 @@ public class Ingreso {
             foreignKey = @ForeignKey(name = "fk_ingreso_usuario"))
     private Usuario usuario;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "id_encargado_almacen", referencedColumnName = "id",
+            foreignKey = @ForeignKey(name = "fk_ingreso_encargado_almacen"))
+    private EncargadoAlmacen encargadoAlmacen;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "id_jefe", referencedColumnName = "id",
+            foreignKey = @ForeignKey(name = "fk_ingreso_jefe"))
+    private Encargado jefe;
+
+    @Column(name = "nombre_encargado_almacen", length = 150)
+    private String nombreEncargadoAlmacen;
+
+    @Column(name = "nombre_jefe", length = 150)
+    private String nombreJefe;
+
     @Column(name = "prefijo", nullable = false, length = 10)
     @ColumnDefault("''")
     private String prefijo;
