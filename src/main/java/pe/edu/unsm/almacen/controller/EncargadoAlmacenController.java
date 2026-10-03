@@ -43,7 +43,7 @@ public class EncargadoAlmacenController {
     }
 
     @GetMapping("/activos")
-    @PreAuthorize("@moduloAccess.hasAccess(authentication, 'EGRESOS')")
+    @PreAuthorize("@moduloAccess.hasAccess(authentication, 'EGRESOS') or @moduloAccess.hasAccess(authentication, 'INGRESOS')")
     @Operation(summary = "Listar encargados de almacén activos")
     public ResponseEntity<ApiResponse<List<EncargadoAlmacenResponse>>> listarActivos() {
         List<EncargadoAlmacenResponse> response = encargadoAlmacenService.listarActivos();
