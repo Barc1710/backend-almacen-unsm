@@ -17,10 +17,13 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import pe.edu.unsm.almacen.dto.common.ApiResponse;
 import pe.edu.unsm.almacen.dto.common.PageResponse;
 import pe.edu.unsm.almacen.dto.request.IngresoCreateRequest;
 import pe.edu.unsm.almacen.dto.response.IngresoResponse;
+import pe.edu.unsm.almacen.service.IIngresoReporteService;
 import pe.edu.unsm.almacen.service.IIngresoService;
 
 @RestController
@@ -30,6 +33,7 @@ import pe.edu.unsm.almacen.service.IIngresoService;
 public class IngresoController {
 
     private final IIngresoService ingresoService;
+    private final IIngresoReporteService ingresoReporteService;
 
     @GetMapping
     @PreAuthorize("@moduloAccess.hasAccess(authentication, 'INGRESOS')")
@@ -74,5 +78,22 @@ public class IngresoController {
     public ResponseEntity<ApiResponse<IngresoResponse>> anular(@PathVariable("id") Integer id) {
         IngresoResponse response = ingresoService.anular(id);
         return ResponseEntity.ok(new ApiResponse<>(true, "Ingreso anulado", response));
+    }
+
+    @GetMapping(value = {"/{id}/reporte-pdf", "/{id}/pdf"}, produces = MediaType.APPLICATION_PDF_VALUE)
+    @PreAuthorize("@moduloAccess.hasAccess(authentication, 'INGRESOS')")
+    @Operation(summary = "Descargar reporte PDF del comprobante de ingreso")
+    public ResponseEntity<byte[]> descargarReportePdf(@PathVariable("id") Integer id) {
+        byte[] pdfBytes = ingresoReporteService.generarReportePdf(id);
+        IngresoResponse ingreso = ingresoService.obtenerPorId(id);
+        String numeroDoc = (ingreso != null && ingreso.numeroCompleto() != null)
+                ? ingreso.numeroCompleto()
+                : ("ING-" + id);
+        String filename = "ingreso_" + numeroDoc + ".pdf";
+
+        return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_PDF)
+                .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + filename + "\"")
+                .body(pdfBytes);
     }
 }
