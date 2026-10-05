@@ -56,6 +56,14 @@ public class IngresoController {
         return ResponseEntity.ok(new ApiResponse<>(true, "Siguiente número de ingreso obtenido", siguiente));
     }
 
+    @GetMapping("/existe-orden")
+    @PreAuthorize("@moduloAccess.hasAccess(authentication, 'INGRESOS')")
+    @Operation(summary = "Verificar si una orden de compra ya existe")
+    public ResponseEntity<ApiResponse<Boolean>> existeOrdenCompra(@RequestParam("numeroOrden") String numeroOrden) {
+        boolean existe = ingresoService.existeOrdenCompra(numeroOrden);
+        return ResponseEntity.ok(new ApiResponse<>(true, "Verificación de orden de compra completada", existe));
+    }
+
     @GetMapping("/{id}")
     @PreAuthorize("@moduloAccess.hasAccess(authentication, 'INGRESOS')")
     @Operation(summary = "Obtener ingreso por ID")

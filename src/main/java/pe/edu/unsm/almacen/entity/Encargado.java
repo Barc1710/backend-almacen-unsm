@@ -47,6 +47,7 @@ public class Encargado {
     private String estado;
 
     public String getNombreCompleto() {
-        return (nombres != null ? nombres : "") + (apellidos != null ? " " + apellidos : "");
+        String prof = (siglaProfesion != null && !siglaProfesion.isBlank()) ? siglaProfesion.trim() + " " : "";
+        return prof + (nombres != null ? nombres : "") + (apellidos != null ? " " + apellidos : "");
     }
 }

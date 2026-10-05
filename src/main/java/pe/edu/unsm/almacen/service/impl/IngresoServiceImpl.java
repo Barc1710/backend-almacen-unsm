@@ -381,6 +381,22 @@ public class IngresoServiceImpl implements IIngresoService {
     }
 
     private IngresoResponse crearIngresoResponse(Ingreso ingreso, BigDecimal total, Integer totalItems, List<DetalleIngresoResponse> detalles) {
+        String nombreEncargadoAlmacen = ingreso.getNombreEncargadoAlmacen();
+        if (nombreEncargadoAlmacen == null || nombreEncargadoAlmacen.isBlank()) {
+            if (ingreso.getEncargadoAlmacen() != null && ingreso.getEncargadoAlmacen().getNombre() != null) {
+                nombreEncargadoAlmacen = ingreso.getEncargadoAlmacen().getNombre();
+            } else if (ingreso.getUsuario() != null && ingreso.getUsuario().getNombreCompleto() != null) {
+                nombreEncargadoAlmacen = ingreso.getUsuario().getNombreCompleto();
+            }
+        }
+
+        String nombreJefe = ingreso.getNombreJefe();
+        if (nombreJefe == null || nombreJefe.isBlank()) {
+            if (ingreso.getJefe() != null && ingreso.getJefe().getNombreCompleto() != null) {
+                nombreJefe = ingreso.getJefe().getNombreCompleto();
+            }
+        }
+
         return new IngresoResponse(
                 ingreso.getId(),
                 ingreso.getProveedor() != null ? ingreso.getProveedor().getId() : null,
@@ -389,9 +405,9 @@ public class IngresoServiceImpl implements IIngresoService {
                 ingreso.getUsuario() != null ? ingreso.getUsuario().getId() : null,
                 ingreso.getUsuario() != null ? ingreso.getUsuario().getNombreCompleto() : null,
                 ingreso.getEncargadoAlmacen() != null ? ingreso.getEncargadoAlmacen().getId() : null,
-                ingreso.getNombreEncargadoAlmacen() != null ? ingreso.getNombreEncargadoAlmacen() : (ingreso.getEncargadoAlmacen() != null ? ingreso.getEncargadoAlmacen().getNombre() : null),
+                nombreEncargadoAlmacen,
                 ingreso.getJefe() != null ? ingreso.getJefe().getId() : null,
-                ingreso.getNombreJefe() != null ? ingreso.getNombreJefe() : (ingreso.getJefe() != null ? ingreso.getJefe().getNombreCompleto() : null),
+                nombreJefe,
                 ingreso.getPrefijo(),
                 ingreso.getCorrelativo(),
                 ingreso.getNumeroCompleto(),
@@ -442,5 +458,14 @@ public class IngresoServiceImpl implements IIngresoService {
         if (valor instanceof BigDecimal bd) return bd;
         if (valor instanceof Number num) return BigDecimal.valueOf(num.doubleValue());
         return new BigDecimal(valor.toString());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public boolean existeOrdenCompra(String orden) {
+        if (orden == null || orden.trim().isEmpty()) {
+            return false;
+        }
+        return ingresoRepository.existsByNumeroOrdenCompraAndEstado(orden.trim().toUpperCase(), "1");
     }
 }

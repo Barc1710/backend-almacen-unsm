@@ -17,4 +17,6 @@ public interface IIngresoService {
     String obtenerSiguienteNumeroIngreso();
 
     IngresoResponse anular(Integer id);
+
+    boolean existeOrdenCompra(String orden);
 }

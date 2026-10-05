@@ -28,6 +28,7 @@ public interface IngresoRepository extends JpaRepository<Ingreso, Integer> {
                (:filtro IS NOT NULL AND (
                    LOWER(i.prefijo) LIKE LOWER(CONCAT('%', :filtro, '%')) OR
                    LOWER(i.numeroOrdenCompra) LIKE LOWER(CONCAT('%', :filtro, '%')) OR
+                   LOWER(i.descripcion) LIKE LOWER(CONCAT('%', :filtro, '%')) OR
                    LOWER(i.proveedor.razonSocial) LIKE LOWER(CONCAT('%', :filtro, '%')) OR
                    LOWER(i.proveedor.ruc) LIKE LOWER(CONCAT('%', :filtro, '%'))
                ))
@@ -47,6 +48,7 @@ public interface IngresoRepository extends JpaRepository<Ingreso, Integer> {
                (:filtro IS NOT NULL AND (
                    LOWER(i.prefijo) LIKE LOWER(CONCAT('%', :filtro, '%')) OR
                    LOWER(i.numeroOrdenCompra) LIKE LOWER(CONCAT('%', :filtro, '%')) OR
+                   LOWER(i.descripcion) LIKE LOWER(CONCAT('%', :filtro, '%')) OR
                    LOWER(i.proveedor.razonSocial) LIKE LOWER(CONCAT('%', :filtro, '%')) OR
                    LOWER(i.proveedor.ruc) LIKE LOWER(CONCAT('%', :filtro, '%'))
                ))
