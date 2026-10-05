@@ -51,7 +51,6 @@ public class ProveedorServiceImpl implements IProveedorService {
                 .ruc(request.ruc() != null ? request.ruc().trim() : null)
                 .razonSocial(request.razonSocial().trim())
                 .telefono(request.telefono() != null ? request.telefono().trim() : null)
-                .celular(request.celular() != null ? request.celular().trim() : null)
                 .correo(request.correo() != null ? request.correo().trim() : null)
                 .direccion(request.direccion() != null ? request.direccion().trim() : null)
                 .contacto(request.contacto() != null ? request.contacto().trim() : null)
@@ -71,7 +70,6 @@ public class ProveedorServiceImpl implements IProveedorService {
         proveedor.setRuc(request.ruc() != null ? request.ruc().trim() : null);
         proveedor.setRazonSocial(request.razonSocial().trim());
         proveedor.setTelefono(request.telefono() != null ? request.telefono().trim() : null);
-        proveedor.setCelular(request.celular() != null ? request.celular().trim() : null);
         proveedor.setCorreo(request.correo() != null ? request.correo().trim() : null);
         proveedor.setDireccion(request.direccion() != null ? request.direccion().trim() : null);
         proveedor.setContacto(request.contacto() != null ? request.contacto().trim() : null);
@@ -96,7 +94,6 @@ public class ProveedorServiceImpl implements IProveedorService {
                 proveedor.getRuc(),
                 proveedor.getRazonSocial(),
                 proveedor.getTelefono(),
-                proveedor.getCelular(),
                 proveedor.getCorreo(),
                 proveedor.getDireccion(),
                 proveedor.getContacto(),

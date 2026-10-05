@@ -16,9 +16,6 @@ public record ProveedorRequest(
         @Size(max = 50, message = "El teléfono no debe exceder 50 caracteres")
         String telefono,
 
-        @Size(max = 50, message = "El celular no debe exceder 50 caracteres")
-        String celular,
-
         @Email(message = "El formato de correo no es válido")
         @Size(max = 100, message = "El correo no debe exceder 100 caracteres")
         String correo,

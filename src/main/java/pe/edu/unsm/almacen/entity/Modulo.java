@@ -29,7 +29,7 @@ public class Modulo {
     @Column(name = "id_modulo", nullable = false)
     private Integer idModulo;
 
-    @Column(name = "codigo", length = 50, unique = true)
+    @Column(name = "codigo", length = 50, unique = true, nullable = false)
     private String codigo;
 
     @Column(name = "nombre", nullable = false, length = 100)

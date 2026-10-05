@@ -261,11 +261,8 @@ public class EgresoServiceImpl implements IEgresoService {
 
             TipoMovimiento tipoMovimientoKardex;
             String documentoTipoKardex;
-            if (tipoEgreso == TipoEgreso.BAJA_DETERIORO) {
-                tipoMovimientoKardex = TipoMovimiento.BAJA_DETERIORO;
-                documentoTipoKardex = "ACTA_BAJA";
-            } else if (tipoEgreso == TipoEgreso.BAJA_VENCIMIENTO) {
-                tipoMovimientoKardex = TipoMovimiento.BAJA_VENCIMIENTO;
+            if (tipoEgreso == TipoEgreso.BAJA_DETERIORO || tipoEgreso == TipoEgreso.BAJA_VENCIMIENTO) {
+                tipoMovimientoKardex = TipoMovimiento.BAJA;
                 documentoTipoKardex = "ACTA_BAJA";
             } else {
                 tipoMovimientoKardex = TipoMovimiento.EGRESO;

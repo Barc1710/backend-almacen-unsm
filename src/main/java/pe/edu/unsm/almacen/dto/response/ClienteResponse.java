@@ -5,7 +5,6 @@ public record ClienteResponse(
         String nombre,
         String dni,
         String telefono,
-        String celular,
         String correo,
         String direccion,
         String estado

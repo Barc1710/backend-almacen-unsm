@@ -7,7 +7,7 @@ public record EncargadoResponse(
         String apellidos,
         String nombreCompleto,
         String dni,
-        String ambiente,
+        String cargo,
         String estado
 ) {
 }

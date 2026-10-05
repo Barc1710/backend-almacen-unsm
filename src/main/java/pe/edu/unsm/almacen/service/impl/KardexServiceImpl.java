@@ -114,8 +114,7 @@ public class KardexServiceImpl implements IKardexService {
         Set<Integer> egresoIds = movimientos.stream()
                 .filter(k -> (k.getTipoMovimiento() == TipoMovimiento.EGRESO
                         || k.getTipoMovimiento() == TipoMovimiento.REVERSO_EGRESO
-                        || k.getTipoMovimiento() == TipoMovimiento.BAJA_DETERIORO
-                        || k.getTipoMovimiento() == TipoMovimiento.BAJA_VENCIMIENTO)
+                        || k.getTipoMovimiento() == TipoMovimiento.BAJA)
                         && k.getDocumentoId() != null)
                 .map(KardexMovimiento::getDocumentoId)
                 .collect(Collectors.toSet());
@@ -168,8 +167,7 @@ public class KardexServiceImpl implements IKardexService {
         if (k.getDocumentoTipo() != null && k.getDocumentoId() != null) {
             if (k.getTipoMovimiento() == TipoMovimiento.EGRESO
                     || k.getTipoMovimiento() == TipoMovimiento.REVERSO_EGRESO
-                    || k.getTipoMovimiento() == TipoMovimiento.BAJA_DETERIORO
-                    || k.getTipoMovimiento() == TipoMovimiento.BAJA_VENCIMIENTO) {
+                    || k.getTipoMovimiento() == TipoMovimiento.BAJA) {
                 Egreso e = egresosMap != null ? egresosMap.get(k.getDocumentoId()) : null;
                 if (e == null && egresoRepository != null) {
                     e = egresoRepository.findById(k.getDocumentoId()).orElse(null);

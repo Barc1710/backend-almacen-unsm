@@ -14,6 +14,7 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
+import jakarta.persistence.Transient;
 import java.time.LocalDateTime;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -47,7 +48,7 @@ public class Egreso {
             foreignKey = @ForeignKey(name = "fk_egreso_encargado"))
     private Encargado encargado;
 
-    @Column(name = "nombre_encargado_libre", nullable = true, length = 150)
+    @Transient
     private String nombreEncargadoLibre;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = true)
@@ -78,7 +79,7 @@ public class Egreso {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "tipo_egreso", nullable = false, length = 30)
-    @ColumnDefault("'DESPACHO_ORDINARIO'")
+    @ColumnDefault("'DESPACHO'")
     private TipoEgreso tipoEgreso;
 
     @Column(name = "motivo_baja", nullable = true, length = 255)
