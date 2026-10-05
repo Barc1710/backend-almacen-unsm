@@ -39,11 +39,12 @@ public class IngresoController {
     @PreAuthorize("@moduloAccess.hasAccess(authentication, 'INGRESOS')")
     @Operation(summary = "Listar ingresos paginados")
     public ResponseEntity<ApiResponse<PageResponse<IngresoResponse>>> listar(
+            @RequestParam(name = "filtro", required = false) String filtro,
             @RequestParam(name = "idProveedor", required = false) Integer idProveedor,
             @RequestParam(name = "desde", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate desde,
             @RequestParam(name = "hasta", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate hasta,
             Pageable pageable) {
-        PageResponse<IngresoResponse> response = ingresoService.listar(idProveedor, desde, hasta, pageable);
+        PageResponse<IngresoResponse> response = ingresoService.listar(filtro, idProveedor, desde, hasta, pageable);
         return ResponseEntity.ok(new ApiResponse<>(true, "Ingresos listados", response));
     }
 
@@ -53,6 +54,14 @@ public class IngresoController {
     public ResponseEntity<ApiResponse<String>> obtenerSiguienteCorrelativo() {
         String siguiente = ingresoService.obtenerSiguienteNumeroIngreso();
         return ResponseEntity.ok(new ApiResponse<>(true, "Siguiente número de ingreso obtenido", siguiente));
+    }
+
+    @GetMapping("/existe-orden")
+    @PreAuthorize("@moduloAccess.hasAccess(authentication, 'INGRESOS')")
+    @Operation(summary = "Verificar si una orden de compra ya existe")
+    public ResponseEntity<ApiResponse<Boolean>> existeOrdenCompra(@RequestParam("numeroOrden") String numeroOrden) {
+        boolean existe = ingresoService.existeOrdenCompra(numeroOrden);
+        return ResponseEntity.ok(new ApiResponse<>(true, "Verificación de orden de compra completada", existe));
     }
 
     @GetMapping("/{id}")

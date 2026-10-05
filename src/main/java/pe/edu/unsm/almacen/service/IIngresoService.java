@@ -8,7 +8,7 @@ import pe.edu.unsm.almacen.dto.response.IngresoResponse;
 
 public interface IIngresoService {
 
-    PageResponse<IngresoResponse> listar(Integer idProveedor, LocalDate desde, LocalDate hasta, Pageable pageable);
+    PageResponse<IngresoResponse> listar(String filtro, Integer idProveedor, LocalDate desde, LocalDate hasta, Pageable pageable);
 
     IngresoResponse obtenerPorId(Integer id);
 
@@ -17,4 +17,6 @@ public interface IIngresoService {
     String obtenerSiguienteNumeroIngreso();
 
     IngresoResponse anular(Integer id);
+
+    boolean existeOrdenCompra(String orden);
 }

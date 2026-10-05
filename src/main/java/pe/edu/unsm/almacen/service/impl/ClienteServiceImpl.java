@@ -51,7 +51,6 @@ public class ClienteServiceImpl implements IClienteService {
                 .nombre(request.nombre().trim())
                 .dni(request.dni() != null ? request.dni().trim() : null)
                 .telefono(request.telefono() != null ? request.telefono().trim() : null)
-                .celular(request.celular() != null ? request.celular().trim() : null)
                 .correo(request.correo() != null ? request.correo().trim() : null)
                 .direccion(request.direccion() != null ? request.direccion().trim() : null)
                 .estado("1")
@@ -68,7 +67,6 @@ public class ClienteServiceImpl implements IClienteService {
         cliente.setNombre(request.nombre().trim());
         cliente.setDni(request.dni() != null ? request.dni().trim() : null);
         cliente.setTelefono(request.telefono() != null ? request.telefono().trim() : null);
-        cliente.setCelular(request.celular() != null ? request.celular().trim() : null);
         cliente.setCorreo(request.correo() != null ? request.correo().trim() : null);
         cliente.setDireccion(request.direccion() != null ? request.direccion().trim() : null);
 
@@ -90,7 +88,6 @@ public class ClienteServiceImpl implements IClienteService {
                 cliente.getNombre(),
                 cliente.getDni(),
                 cliente.getTelefono(),
-                cliente.getCelular(),
                 cliente.getCorreo(),
                 cliente.getDireccion(),
                 cliente.getEstado()

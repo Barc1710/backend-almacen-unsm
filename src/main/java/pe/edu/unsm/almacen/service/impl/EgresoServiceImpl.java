@@ -11,8 +11,8 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 import java.util.Set;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -73,11 +73,47 @@ public class EgresoServiceImpl implements IEgresoService {
 
     @Override
     @Transactional(readOnly = true)
-    public PageResponse<EgresoResponse> listar(Integer idCliente, Integer idArea, LocalDate desde, LocalDate hasta, String estado, Pageable pageable) {
+    public PageResponse<EgresoResponse> listar(String filtro, Integer idCliente, Integer idArea, TipoEgreso tipoEgreso, LocalDate desde, LocalDate hasta, String estado, Pageable pageable) {
         LocalDateTime desdeDateTime = desde != null ? desde.atStartOfDay() : null;
         LocalDateTime hastaDateTime = hasta != null ? hasta.atTime(23, 59, 59) : null;
+        String filtroLimpio = (filtro != null && !filtro.trim().isEmpty()) ? filtro.trim() : null;
+        Integer correlativoFiltro = null;
+        String prefijoFiltro = null;
 
-        Page<Egreso> page = egresoRepository.listarPaginado(idCliente, idArea, desdeDateTime, hastaDateTime, estado, pageable);
+        if (filtroLimpio != null) {
+            if (filtroLimpio.contains("-")) {
+                int guionIdx = filtroLimpio.indexOf('-');
+                String partePrefijo = filtroLimpio.substring(0, guionIdx).trim();
+                String parteNumero = filtroLimpio.substring(guionIdx + 1).trim();
+                try {
+                    correlativoFiltro = Integer.parseInt(parteNumero);
+                    if (!partePrefijo.isEmpty()) {
+                        prefijoFiltro = partePrefijo;
+                    }
+                } catch (NumberFormatException ignored) {
+                    // Si tras el guión no es numérico, se mantiene búsqueda por texto libre
+                }
+            } else {
+                try {
+                    correlativoFiltro = Integer.parseInt(filtroLimpio);
+                } catch (NumberFormatException ignored) {
+                    // Texto libre no numérico
+                }
+            }
+        }
+
+        Page<Egreso> page = egresoRepository.listarPaginado(
+                filtroLimpio,
+                correlativoFiltro,
+                prefijoFiltro,
+                idCliente,
+                idArea,
+                tipoEgreso,
+                desdeDateTime,
+                hastaDateTime,
+                estado,
+                pageable
+        );
         List<Integer> ids = page.getContent().stream().map(Egreso::getId).toList();
         Map<Integer, BigDecimal> totales = ids.isEmpty() ? Map.of()
                 : detalleEgresoRepository.sumarTotalesPorEgresoIds(ids).stream()
@@ -117,10 +153,18 @@ public class EgresoServiceImpl implements IEgresoService {
             if (!esAdmin) {
                 throw new AccessDeniedException("Solo ADMINISTRADOR puede registrar una baja.");
             }
+            if (request.motivoBaja() == null || request.motivoBaja().trim().isEmpty()) {
+                throw new BusinessException("El motivo o justificación de la baja es obligatorio.");
+            }
         }
 
-        Cliente cliente = clienteRepository.findById(request.idCliente())
-                .orElseThrow(() -> new ResourceNotFoundException("Cliente no encontrado con ID: " + request.idCliente()));
+        Cliente cliente = null;
+        if (request.idCliente() != null) {
+            cliente = clienteRepository.findById(request.idCliente())
+                    .orElseThrow(() -> new ResourceNotFoundException("Cliente no encontrado con ID: " + request.idCliente()));
+        } else if (tipoEgreso == TipoEgreso.DESPACHO_ORDINARIO) {
+            throw new BusinessException("El cliente es obligatorio para despacho ordinario.");
+        }
 
         Encargado encargado = null;
         String nombreEncargadoLibre = null;
@@ -129,12 +173,18 @@ public class EgresoServiceImpl implements IEgresoService {
                     .orElseThrow(() -> new ResourceNotFoundException("Encargado no encontrado con ID: " + request.idEncargado()));
         } else if (request.nombreEncargadoLibre() != null && !request.nombreEncargadoLibre().trim().isEmpty()) {
             nombreEncargadoLibre = request.nombreEncargadoLibre().trim();
-        } else {
+        } else if (tipoEgreso == TipoEgreso.DESPACHO_ORDINARIO) {
             throw new BusinessException("Indica un encargado o su nombre.");
         }
 
-        Area area = areaRepository.findById(request.idArea())
-                .orElseThrow(() -> new ResourceNotFoundException("Área no encontrada con ID: " + request.idArea()));
+        Area area = null;
+        if (request.idArea() != null) {
+            area = areaRepository.findById(request.idArea())
+                    .orElseThrow(() -> new ResourceNotFoundException("Área no encontrada con ID: " + request.idArea()));
+        } else if (tipoEgreso == TipoEgreso.DESPACHO_ORDINARIO) {
+            throw new BusinessException("El área es obligatoria para despacho ordinario.");
+        }
+
         EncargadoAlmacen encargadoAlmacen = encargadoAlmacenRepository.findById(request.idEncargadoAlmacen())
                 .orElseThrow(() -> new ResourceNotFoundException("Encargado de almacén no encontrado con ID: " + request.idEncargadoAlmacen()));
 
@@ -158,6 +208,7 @@ public class EgresoServiceImpl implements IEgresoService {
                 .prefijo(prefijo)
                 .correlativo(nuevoCorrelativo)
                 .tipoEgreso(tipoEgreso)
+                .motivoBaja(request.motivoBaja() != null ? request.motivoBaja().trim() : null)
                 .fecha(LocalDateTime.now())
                 .estado("1")
                 .build();
@@ -210,11 +261,8 @@ public class EgresoServiceImpl implements IEgresoService {
 
             TipoMovimiento tipoMovimientoKardex;
             String documentoTipoKardex;
-            if (tipoEgreso == TipoEgreso.BAJA_DETERIORO) {
-                tipoMovimientoKardex = TipoMovimiento.BAJA_DETERIORO;
-                documentoTipoKardex = "ACTA_BAJA";
-            } else if (tipoEgreso == TipoEgreso.BAJA_VENCIMIENTO) {
-                tipoMovimientoKardex = TipoMovimiento.BAJA_VENCIMIENTO;
+            if (tipoEgreso == TipoEgreso.BAJA_DETERIORO || tipoEgreso == TipoEgreso.BAJA_VENCIMIENTO) {
+                tipoMovimientoKardex = TipoMovimiento.BAJA;
                 documentoTipoKardex = "ACTA_BAJA";
             } else {
                 tipoMovimientoKardex = TipoMovimiento.EGRESO;
@@ -247,7 +295,9 @@ public class EgresoServiceImpl implements IEgresoService {
                     subtotal,
                     detalleGuardado.getSaldo(),
                     detalleGuardado.getFecha(),
-                    detalleGuardado.getTipo()
+                    detalleGuardado.getTipo(),
+                    articulo.getUnidadMedida() != null ? articulo.getUnidadMedida().getSimbolo() : null,
+                    articulo.getUnidadMedida() != null ? articulo.getUnidadMedida().getPermiteDecimales() : null
             ));
         }
 
@@ -341,7 +391,11 @@ public class EgresoServiceImpl implements IEgresoService {
                     subtotal,
                     d.getSaldo(),
                     d.getFecha(),
-                    d.getTipo()
+                    d.getTipo(),
+                    d.getArticulo() != null && d.getArticulo().getUnidadMedida() != null
+                            ? d.getArticulo().getUnidadMedida().getSimbolo() : null,
+                    d.getArticulo() != null && d.getArticulo().getUnidadMedida() != null
+                            ? d.getArticulo().getUnidadMedida().getPermiteDecimales() : null
             ));
         }
 
@@ -353,17 +407,29 @@ public class EgresoServiceImpl implements IEgresoService {
     }
 
     private EgresoResponse crearEgresoResponse(Egreso egreso, BigDecimal total, List<DetalleEgresoResponse> detalles) {
+        String nombreEncargadoAlmacen = egreso.getEncargadoAlmacen() != null ? egreso.getEncargadoAlmacen().getNombre() : null;
+        if (nombreEncargadoAlmacen == null || nombreEncargadoAlmacen.isBlank()) {
+            if (egreso.getUsuario() != null && egreso.getUsuario().getNombreCompleto() != null) {
+                nombreEncargadoAlmacen = egreso.getUsuario().getNombreCompleto();
+            }
+        }
+
+        String nombreEncargado = egreso.getEncargado() != null ? egreso.getEncargado().getNombreCompleto() : null;
+        if (nombreEncargado == null || nombreEncargado.isBlank()) {
+            nombreEncargado = egreso.getNombreEncargadoLibre();
+        }
+
         return new EgresoResponse(
                 egreso.getId(),
                 egreso.getCliente() != null ? egreso.getCliente().getId() : null,
                 egreso.getCliente() != null ? egreso.getCliente().getNombre() : null,
                 egreso.getEncargado() != null ? egreso.getEncargado().getId() : null,
-                egreso.getEncargado() != null ? egreso.getEncargado().getNombreCompleto() : null,
+                nombreEncargado,
                 egreso.getNombreEncargadoLibre(),
                 egreso.getArea() != null ? egreso.getArea().getId() : null,
                 egreso.getArea() != null ? egreso.getArea().getNombre() : null,
                 egreso.getEncargadoAlmacen() != null ? egreso.getEncargadoAlmacen().getId() : null,
-                egreso.getEncargadoAlmacen() != null ? egreso.getEncargadoAlmacen().getNombre() : null,
+                nombreEncargadoAlmacen,
                 egreso.getUsuario() != null ? egreso.getUsuario().getId() : null,
                 egreso.getUsuario() != null ? egreso.getUsuario().getNombreCompleto() : null,
                 egreso.getAmbiente(),
@@ -371,6 +437,7 @@ public class EgresoServiceImpl implements IEgresoService {
                 egreso.getCorrelativo(),
                 egreso.getNumeroCompleto(),
                 egreso.getTipoEgreso() != null ? egreso.getTipoEgreso().name() : "DESPACHO_ORDINARIO",
+                egreso.getMotivoBaja(),
                 egreso.getFecha(),
                 egreso.getEstado(),
                 total,
@@ -420,5 +487,14 @@ public class EgresoServiceImpl implements IEgresoService {
         if (valor instanceof BigDecimal bd) return bd;
         if (valor instanceof Number num) return BigDecimal.valueOf(num.doubleValue());
         return new BigDecimal(valor.toString());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public String obtenerSiguienteNumeroEgreso() {
+        String prefijo = "E" + String.format("%02d", Year.now().getValue() % 100);
+        Integer maxCorrelativo = egresoRepository.obtenerMaximoCorrelativo(prefijo);
+        int nuevoCorrelativo = (maxCorrelativo != null ? maxCorrelativo : 0) + 1;
+        return String.format("%s-%04d", prefijo, nuevoCorrelativo);
     }
 }

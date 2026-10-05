@@ -11,6 +11,7 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
+import jakarta.persistence.Transient;
 import jakarta.persistence.UniqueConstraint;
 import java.time.LocalDateTime;
 import java.time.Year;
@@ -55,14 +56,14 @@ public class Ingreso {
     private EncargadoAlmacen encargadoAlmacen;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "id_jefe", referencedColumnName = "id",
-            foreignKey = @ForeignKey(name = "fk_ingreso_jefe"))
+    @JoinColumn(name = "id_encargado", referencedColumnName = "id",
+            foreignKey = @ForeignKey(name = "fk_ingreso_encargado"))
     private Encargado jefe;
 
-    @Column(name = "nombre_encargado_almacen", length = 150)
+    @Transient
     private String nombreEncargadoAlmacen;
 
-    @Column(name = "nombre_jefe", length = 150)
+    @Transient
     private String nombreJefe;
 
     @Column(name = "prefijo", nullable = false, length = 10)
@@ -109,5 +110,27 @@ public class Ingreso {
                 : "I" + String.format("%02d", Year.now().getValue() % 100);
         int c = correlativo != null ? correlativo : 0;
         return String.format("%s-%04d", p, c);
+    }
+
+    public String getNombreEncargadoAlmacen() {
+        if (this.nombreEncargadoAlmacen != null && !this.nombreEncargadoAlmacen.isBlank()) {
+            return this.nombreEncargadoAlmacen;
+        }
+        return this.encargadoAlmacen != null ? this.encargadoAlmacen.getNombre() : null;
+    }
+
+    public String getNombreJefe() {
+        if (this.nombreJefe != null && !this.nombreJefe.isBlank()) {
+            return this.nombreJefe;
+        }
+        return this.jefe != null ? this.jefe.getNombreCompleto() : null;
+    }
+
+    public Encargado getEncargado() {
+        return this.jefe;
+    }
+
+    public void setEncargado(Encargado encargado) {
+        this.jefe = encargado;
     }
 }

@@ -65,11 +65,44 @@ public class IngresoServiceImpl implements IIngresoService {
 
     @Override
     @Transactional(readOnly = true)
-    public PageResponse<IngresoResponse> listar(Integer idProveedor, LocalDate desde, LocalDate hasta, Pageable pageable) {
+    public PageResponse<IngresoResponse> listar(String filtro, Integer idProveedor, LocalDate desde, LocalDate hasta, Pageable pageable) {
         LocalDateTime desdeDateTime = desde != null ? desde.atStartOfDay() : null;
         LocalDateTime hastaDateTime = hasta != null ? hasta.atTime(23, 59, 59) : null;
+        String filtroLimpio = (filtro != null && !filtro.trim().isEmpty()) ? filtro.trim() : null;
+        Integer correlativoFiltro = null;
+        String prefijoFiltro = null;
 
-        Page<Ingreso> page = ingresoRepository.listarPaginado(idProveedor, desdeDateTime, hastaDateTime, pageable);
+        if (filtroLimpio != null) {
+            if (filtroLimpio.contains("-")) {
+                int guionIdx = filtroLimpio.indexOf('-');
+                String partePrefijo = filtroLimpio.substring(0, guionIdx).trim();
+                String parteNumero = filtroLimpio.substring(guionIdx + 1).trim();
+                try {
+                    correlativoFiltro = Integer.parseInt(parteNumero);
+                    if (!partePrefijo.isEmpty()) {
+                        prefijoFiltro = partePrefijo;
+                    }
+                } catch (NumberFormatException ignored) {
+                    // Si tras el guión no es numérico, se mantiene búsqueda por texto libre
+                }
+            } else {
+                try {
+                    correlativoFiltro = Integer.parseInt(filtroLimpio);
+                } catch (NumberFormatException ignored) {
+                    // Texto libre no numérico
+                }
+            }
+        }
+
+        Page<Ingreso> page = ingresoRepository.listarPaginado(
+                filtroLimpio,
+                correlativoFiltro,
+                prefijoFiltro,
+                idProveedor,
+                desdeDateTime,
+                hastaDateTime,
+                pageable
+        );
         List<Integer> ids = page.getContent().stream().map(Ingreso::getId).toList();
 
         Map<Integer, BigDecimal> totales = new java.util.HashMap<>();
@@ -348,6 +381,22 @@ public class IngresoServiceImpl implements IIngresoService {
     }
 
     private IngresoResponse crearIngresoResponse(Ingreso ingreso, BigDecimal total, Integer totalItems, List<DetalleIngresoResponse> detalles) {
+        String nombreEncargadoAlmacen = ingreso.getNombreEncargadoAlmacen();
+        if (nombreEncargadoAlmacen == null || nombreEncargadoAlmacen.isBlank()) {
+            if (ingreso.getEncargadoAlmacen() != null && ingreso.getEncargadoAlmacen().getNombre() != null) {
+                nombreEncargadoAlmacen = ingreso.getEncargadoAlmacen().getNombre();
+            } else if (ingreso.getUsuario() != null && ingreso.getUsuario().getNombreCompleto() != null) {
+                nombreEncargadoAlmacen = ingreso.getUsuario().getNombreCompleto();
+            }
+        }
+
+        String nombreJefe = ingreso.getNombreJefe();
+        if (nombreJefe == null || nombreJefe.isBlank()) {
+            if (ingreso.getJefe() != null && ingreso.getJefe().getNombreCompleto() != null) {
+                nombreJefe = ingreso.getJefe().getNombreCompleto();
+            }
+        }
+
         return new IngresoResponse(
                 ingreso.getId(),
                 ingreso.getProveedor() != null ? ingreso.getProveedor().getId() : null,
@@ -356,9 +405,9 @@ public class IngresoServiceImpl implements IIngresoService {
                 ingreso.getUsuario() != null ? ingreso.getUsuario().getId() : null,
                 ingreso.getUsuario() != null ? ingreso.getUsuario().getNombreCompleto() : null,
                 ingreso.getEncargadoAlmacen() != null ? ingreso.getEncargadoAlmacen().getId() : null,
-                ingreso.getNombreEncargadoAlmacen() != null ? ingreso.getNombreEncargadoAlmacen() : (ingreso.getEncargadoAlmacen() != null ? ingreso.getEncargadoAlmacen().getNombre() : null),
+                nombreEncargadoAlmacen,
                 ingreso.getJefe() != null ? ingreso.getJefe().getId() : null,
-                ingreso.getNombreJefe() != null ? ingreso.getNombreJefe() : (ingreso.getJefe() != null ? ingreso.getJefe().getNombreCompleto() : null),
+                nombreJefe,
                 ingreso.getPrefijo(),
                 ingreso.getCorrelativo(),
                 ingreso.getNumeroCompleto(),
@@ -409,5 +458,14 @@ public class IngresoServiceImpl implements IIngresoService {
         if (valor instanceof BigDecimal bd) return bd;
         if (valor instanceof Number num) return BigDecimal.valueOf(num.doubleValue());
         return new BigDecimal(valor.toString());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public boolean existeOrdenCompra(String orden) {
+        if (orden == null || orden.trim().isEmpty()) {
+            return false;
+        }
+        return ingresoRepository.existsByNumeroOrdenCompraAndEstado(orden.trim().toUpperCase(), "1");
     }
 }

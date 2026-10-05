@@ -1,0 +1,21 @@
+CREATE TABLE articulo (
+    id               INT AUTO_INCREMENT PRIMARY KEY,
+    codigo           VARCHAR(20)                  NOT NULL,
+    descripcion      VARCHAR(255)                 NOT NULL,
+    id_unidad_medida INT                          NULL,
+    id_familia       INT                          NOT NULL,
+    id_marca         INT                          NOT NULL,
+    id_ubicacion     INT                          NOT NULL,
+    saldo            DECIMAL(12, 2) DEFAULT 0.00  NOT NULL,
+    cantidad_minima  DECIMAL(12, 2) DEFAULT 10.00 NOT NULL,
+    precio           DECIMAL(12, 2) DEFAULT 0.00  NOT NULL,
+    activo           TINYINT(1)     DEFAULT 1     NOT NULL,
+    estado           CHAR(1)        DEFAULT '1'   NOT NULL,
+    detalle          VARCHAR(255)   DEFAULT ''    NULL,
+    fecha            DATETIME       DEFAULT CURRENT_TIMESTAMP NULL,
+    CONSTRAINT uq_articulo_codigo UNIQUE (codigo),
+    CONSTRAINT fk_articulo_familia FOREIGN KEY (id_familia) REFERENCES familia (id) ON UPDATE CASCADE,
+    CONSTRAINT fk_articulo_marca FOREIGN KEY (id_marca) REFERENCES marca (id) ON UPDATE CASCADE,
+    CONSTRAINT fk_articulo_ubicacion FOREIGN KEY (id_ubicacion) REFERENCES ubicacion (id) ON UPDATE CASCADE,
+    CONSTRAINT fk_articulo_unidad_medida FOREIGN KEY (id_unidad_medida) REFERENCES unidad_medida (id) ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

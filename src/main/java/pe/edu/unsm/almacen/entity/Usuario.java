@@ -10,6 +10,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import jakarta.persistence.Transient;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -64,9 +65,9 @@ public class Usuario {
     @Column(name = "direccion", nullable = true, length = 255)
     private String direccion;
 
-    @Column(name = "debe_cambiar_clave", nullable = false, columnDefinition = "boolean")
-    @ColumnDefault("TRUE")
-    private Boolean debeCambiarClave;
+    @Transient
+    @Builder.Default
+    private Boolean debeCambiarClave = false;
 
     public String getNombreCompleto() {
         return (nombre != null ? nombre : "") + (apellido != null ? " " + apellido : "");

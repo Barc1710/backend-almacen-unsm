@@ -36,6 +36,7 @@ import pe.edu.unsm.almacen.entity.KardexMovimiento;
 import pe.edu.unsm.almacen.entity.Encargado;
 import pe.edu.unsm.almacen.entity.EncargadoAlmacen;
 import pe.edu.unsm.almacen.entity.Proveedor;
+import pe.edu.unsm.almacen.entity.TipoEgreso;
 import pe.edu.unsm.almacen.entity.TipoMovimiento;
 import pe.edu.unsm.almacen.entity.UnidadMedida;
 import pe.edu.unsm.almacen.entity.Usuario;
@@ -81,7 +82,7 @@ class MovimientosServiceTest {
                 true, List.of(new SimpleGrantedAuthority("ROLE_USUARIO")));
         SecurityContextHolder.getContext().setAuthentication(
                 UsernamePasswordAuthenticationToken.authenticated(principal, null, principal.getAuthorities()));
-        when(usuarioRepository.findById(1)).thenReturn(Optional.of(usuario));
+        org.mockito.Mockito.lenient().when(usuarioRepository.findById(1)).thenReturn(Optional.of(usuario));
     }
 
     @AfterEach
@@ -241,6 +242,29 @@ class MovimientosServiceTest {
     }
 
     @Test
+    void egresoIncluyeUnidadRealAlRegistrarYConsultar() {
+        Articulo articulo = articuloConCincoUnidades();
+        articulo.setUnidadMedida(UnidadMedida.builder().simbolo("KG").permiteDecimales(true).build());
+        prepararEgreso(articulo);
+        when(detalleEgresoRepository.save(any(DetalleEgreso.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        var registrado = egresoService.registrar(solicitudEgreso("2.50"));
+        assertEquals("KG", registrado.detalles().getFirst().simboloUnidadMedida());
+        assertEquals(Boolean.TRUE, registrado.detalles().getFirst().permiteDecimales());
+
+        when(egresoRepository.findById(21)).thenReturn(Optional.of(
+                Egreso.builder().id(21).prefijo("EGR").correlativo(1).estado("1").build()));
+        when(detalleEgresoRepository.findByEgreso_IdOrderByIdAsc(21)).thenReturn(List.of(
+                DetalleEgreso.builder().articulo(articulo).cantidad(new BigDecimal("2.50"))
+                        .precio(new BigDecimal("4.00")).build()));
+
+        var consultado = egresoService.obtenerPorId(21);
+        assertEquals("KG", consultado.detalles().getFirst().simboloUnidadMedida());
+        assertEquals(Boolean.TRUE, consultado.detalles().getFirst().permiteDecimales());
+        assertEquals(new BigDecimal("2.50"), consultado.detalles().getFirst().cantidad());
+    }
+
+    @Test
     void anulacionDevuelveExistenciasYRegistraReverso() {
         Articulo articulo = articuloConCincoUnidades();
         Egreso egreso = Egreso.builder().id(21).prefijo("EGR").correlativo(1).estado("1").build();
@@ -273,6 +297,63 @@ class MovimientosServiceTest {
         verify(kardexMovimientoRepository, never()).save(any());
     }
 
+    @Test
+    void bajaPorDeterioroPermiteClienteYAreaNulosConMotivo() {
+        var principalAdmin = new UserDetailsImpl(1, "Admin", "Pérez", "admin", "", "ADMINISTRADOR", false,
+                true, List.of(new SimpleGrantedAuthority("ROLE_ADMINISTRADOR")));
+        SecurityContextHolder.getContext().setAuthentication(
+                UsernamePasswordAuthenticationToken.authenticated(principalAdmin, null, principalAdmin.getAuthorities()));
+
+        Articulo articulo = articuloConCincoUnidades();
+        when(encargadoAlmacenRepository.findById(3))
+                .thenReturn(Optional.of(EncargadoAlmacen.builder().id(3).nombre("Almacenero").build()));
+        when(articuloRepository.findByIdWithLock(10)).thenReturn(Optional.of(articulo));
+        when(egresoRepository.saveAndFlush(any(Egreso.class))).thenAnswer(invocation -> {
+            Egreso egreso = invocation.getArgument(0);
+            egreso.setId(21);
+            return egreso;
+        });
+        when(detalleEgresoRepository.save(any(DetalleEgreso.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        EgresoCreateRequest bajaRequest = new EgresoCreateRequest(
+                null, null, null, TipoEgreso.BAJA_DETERIORO, "Material deteriorado por humedad",
+                null, 3, null, "EGR", List.of(new DetalleEgresoRequest(10, new BigDecimal("2.00")))
+        );
+
+        var respuesta = egresoService.registrar(bajaRequest);
+
+        assertEquals("BAJA_DETERIORO", respuesta.tipoEgreso());
+        assertEquals("Material deteriorado por humedad", respuesta.motivoBaja());
+        org.junit.jupiter.api.Assertions.assertNull(respuesta.idCliente());
+        org.junit.jupiter.api.Assertions.assertNull(respuesta.idArea());
+        assertEquals(new BigDecimal("3.00"), articulo.getSaldo());
+    }
+
+    @Test
+    void bajaSinMotivoLanzaBusinessException() {
+        var principalAdmin = new UserDetailsImpl(1, "Admin", "Pérez", "admin", "", "ADMINISTRADOR", false,
+                true, List.of(new SimpleGrantedAuthority("ROLE_ADMINISTRADOR")));
+        SecurityContextHolder.getContext().setAuthentication(
+                UsernamePasswordAuthenticationToken.authenticated(principalAdmin, null, principalAdmin.getAuthorities()));
+
+        EgresoCreateRequest bajaRequest = new EgresoCreateRequest(
+                null, null, null, TipoEgreso.BAJA_DETERIORO, "   ",
+                null, 3, null, "EGR", List.of(new DetalleEgresoRequest(10, new BigDecimal("2.00")))
+        );
+
+        assertThrows(BusinessException.class, () -> egresoService.registrar(bajaRequest));
+    }
+
+    @Test
+    void despachoOrdinarioSinClienteLanzaBusinessException() {
+        EgresoCreateRequest request = new EgresoCreateRequest(
+                null, null, "Responsable", TipoEgreso.DESPACHO_ORDINARIO, null,
+                2, 3, "Aula", "EGR", List.of(new DetalleEgresoRequest(10, new BigDecimal("2.00")))
+        );
+
+        assertThrows(BusinessException.class, () -> egresoService.registrar(request));
+    }
+
     private void prepararEgreso(Articulo articulo) {
         when(clienteRepository.findById(1)).thenReturn(Optional.of(Cliente.builder().id(1).nombre("Cliente").build()));
         when(areaRepository.findById(2)).thenReturn(Optional.of(Area.builder().id(2).nombre("Área").build()));
@@ -293,7 +374,7 @@ class MovimientosServiceTest {
     }
 
     private EgresoCreateRequest solicitudEgreso(String cantidad) {
-        return new EgresoCreateRequest(1, null, "Responsable", null, 2, 3, "Aula", "EGR",
+        return new EgresoCreateRequest(1, null, "Responsable", null, null, 2, 3, "Aula", "EGR",
                 List.of(new DetalleEgresoRequest(10, new BigDecimal(cantidad))));
     }
 }

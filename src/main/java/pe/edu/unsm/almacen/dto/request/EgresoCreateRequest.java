@@ -9,7 +9,6 @@ import java.util.List;
 import pe.edu.unsm.almacen.entity.TipoEgreso;
 
 public record EgresoCreateRequest(
-        @NotNull(message = "El cliente/destinatario es obligatorio")
         Integer idCliente,
 
         Integer idEncargado,
@@ -19,7 +18,9 @@ public record EgresoCreateRequest(
 
         TipoEgreso tipoEgreso,
 
-        @NotNull(message = "El área de destino es obligatoria")
+        @Size(max = 255, message = "El motivo de la baja no puede exceder los 255 caracteres")
+        String motivoBaja,
+
         Integer idArea,
 
         @NotNull(message = "El encargado de almacén es obligatorio")

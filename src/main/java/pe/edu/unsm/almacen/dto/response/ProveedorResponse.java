@@ -5,7 +5,6 @@ public record ProveedorResponse(
         String ruc,
         String razonSocial,
         String telefono,
-        String celular,
         String correo,
         String direccion,
         String contacto,

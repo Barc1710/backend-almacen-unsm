@@ -16,6 +16,6 @@ public interface EncargadoRepository extends JpaRepository<Encargado, Integer> {
            "LOWER(e.nombres) LIKE LOWER(CONCAT('%', :filtro, '%')) OR " +
            "LOWER(e.apellidos) LIKE LOWER(CONCAT('%', :filtro, '%')) OR " +
            "LOWER(COALESCE(e.dni, '')) LIKE LOWER(CONCAT('%', :filtro, '%')) OR " +
-           "LOWER(COALESCE(e.ambiente, '')) LIKE LOWER(CONCAT('%', :filtro, '%')))")
+           "LOWER(COALESCE(e.cargo, '')) LIKE LOWER(CONCAT('%', :filtro, '%')))")
     Page<Encargado> buscar(@Param("filtro") String filtro, Pageable pageable);
 }

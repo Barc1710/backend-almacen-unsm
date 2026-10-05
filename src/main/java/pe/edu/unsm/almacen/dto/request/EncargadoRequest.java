@@ -19,7 +19,7 @@ public record EncargadoRequest(
         @Pattern(regexp = "\\d{8}", message = "El DNI debe contener exactamente 8 dígitos")
         String dni,
 
-        @Size(max = 100, message = "El ambiente no debe exceder 100 caracteres")
-        String ambiente
+        @Size(max = 100, message = "El cargo no debe exceder 100 caracteres")
+        String cargo
 ) {
 }

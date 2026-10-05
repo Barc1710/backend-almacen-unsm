@@ -52,7 +52,7 @@ public class EncargadoServiceImpl implements IEncargadoService {
                 .nombres(request.nombres().trim())
                 .apellidos(request.apellidos().trim())
                 .dni(request.dni() != null ? request.dni().trim() : null)
-                .ambiente(request.ambiente() != null ? request.ambiente().trim() : null)
+                .cargo(request.cargo() != null ? request.cargo().trim() : null)
                 .estado("1")
                 .build();
         return mapToResponse(encargadoRepository.save(encargado));
@@ -68,7 +68,7 @@ public class EncargadoServiceImpl implements IEncargadoService {
         encargado.setNombres(request.nombres().trim());
         encargado.setApellidos(request.apellidos().trim());
         encargado.setDni(request.dni() != null ? request.dni().trim() : null);
-        encargado.setAmbiente(request.ambiente() != null ? request.ambiente().trim() : null);
+        encargado.setCargo(request.cargo() != null ? request.cargo().trim() : null);
 
         return mapToResponse(encargadoRepository.save(encargado));
     }
@@ -90,7 +90,7 @@ public class EncargadoServiceImpl implements IEncargadoService {
                 encargado.getApellidos(),
                 encargado.getNombreCompleto(),
                 encargado.getDni(),
-                encargado.getAmbiente(),
+                encargado.getCargo(),
                 encargado.getEstado()
         );
     }

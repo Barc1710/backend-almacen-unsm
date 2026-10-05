@@ -4,7 +4,6 @@ public record EncargadoAlmacenResponse(
         Integer id,
         String nombre,
         String estado,
-        Boolean esTitular,
-        String cargo
+        Boolean esTitular
 ) {
 }

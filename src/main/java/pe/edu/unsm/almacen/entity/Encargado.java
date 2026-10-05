@@ -39,14 +39,15 @@ public class Encargado {
     @Column(name = "dni", nullable = true, length = 8, columnDefinition = "char(8)")
     private String dni;
 
-    @Column(name = "ambiente", nullable = true, length = 100)
-    private String ambiente;
+    @Column(name = "cargo", nullable = true, length = 100)
+    private String cargo;
 
     @Column(name = "estado", nullable = false, length = 1, columnDefinition = "char(1)")
     @ColumnDefault("'1'")
     private String estado;
 
     public String getNombreCompleto() {
-        return (nombres != null ? nombres : "") + (apellidos != null ? " " + apellidos : "");
+        String prof = (siglaProfesion != null && !siglaProfesion.isBlank()) ? siglaProfesion.trim() + " " : "";
+        return prof + (nombres != null ? nombres : "") + (apellidos != null ? " " + apellidos : "");
     }
 }
