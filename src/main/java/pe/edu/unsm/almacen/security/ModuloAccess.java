@@ -1,5 +1,6 @@
 package pe.edu.unsm.almacen.security;
 
+import java.util.List;
 import java.util.Objects;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
@@ -28,7 +29,10 @@ public class ModuloAccess {
             return false;
         }
 
-        if (!moduloRepository.existsByCodigoAndEstado(codigo, 1)) {
+        List<String> codigosCandidatos = resolverCodigosEquivalentes(codigo);
+        boolean algunoExiste = codigosCandidatos.stream()
+                .anyMatch(c -> moduloRepository.existsByCodigoAndEstado(c, 1));
+        if (!algunoExiste) {
             return false;
         }
 
@@ -43,16 +47,14 @@ public class ModuloAccess {
                     if (esAdministrador(usuario)) {
                         return true;
                     }
-                    return permisoRepository.existsActiveByPerfilAndCodigo(perfil.getIdPerfil(), codigo);
+                    return codigosCandidatos.stream()
+                            .anyMatch(c -> permisoRepository.existsActiveByPerfilAndCodigo(perfil.getIdPerfil(), c));
                 })
                 .orElse(false);
     }
 
     @Transactional(readOnly = true)
     public boolean canRead(Authentication authentication, String codigoRecurso, String... codigosRelacionados) {
-        if (!moduloRepository.existsByCodigoAndEstado(codigoRecurso, 1)) {
-            return false;
-        }
         if (hasAccess(authentication, codigoRecurso)) {
             return true;
         }
@@ -62,6 +64,35 @@ public class ModuloAccess {
             }
         }
         return false;
+    }
+
+    private List<String> resolverCodigosEquivalentes(String codigo) {
+        if (codigo == null) {
+            return List.of();
+        }
+        String clean = codigo.trim().toUpperCase();
+        if ("INVENTARIO".equals(clean)) {
+            return List.of(clean, "INVENTARIO_ARTICULOS", "INVENTARIO_FAMILIAS", "INVENTARIO_MARCAS", "ARTICULOS");
+        }
+        if ("ARTICULOS".equals(clean) || "INVENTARIO_ARTICULOS".equals(clean)) {
+            return List.of(clean, "INVENTARIO_ARTICULOS", "INVENTARIO", "ARTICULOS");
+        }
+        if ("FAMILIAS".equals(clean) || "INVENTARIO_FAMILIAS".equals(clean)) {
+            return List.of(clean, "INVENTARIO_FAMILIAS", "FAMILIAS", "INVENTARIO");
+        }
+        if ("MARCAS".equals(clean) || "INVENTARIO_MARCAS".equals(clean)) {
+            return List.of(clean, "INVENTARIO_MARCAS", "MARCAS", "INVENTARIO");
+        }
+        if ("PERFILES".equals(clean) || "SEGURIDAD_PERFILES".equals(clean)) {
+            return List.of(clean, "SEGURIDAD_PERFILES", "PERFILES", "SEGURIDAD");
+        }
+        if ("USUARIOS".equals(clean) || "SEGURIDAD_USUARIOS".equals(clean)) {
+            return List.of(clean, "SEGURIDAD_USUARIOS", "USUARIOS", "SEGURIDAD");
+        }
+        if ("SEGURIDAD".equals(clean)) {
+            return List.of(clean, "SEGURIDAD_USUARIOS", "SEGURIDAD_PERFILES", "SEGURIDAD");
+        }
+        return List.of(clean);
     }
 
     private boolean esAdministrador(Usuario usuario) {
