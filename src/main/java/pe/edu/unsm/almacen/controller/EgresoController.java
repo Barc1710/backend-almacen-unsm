@@ -53,6 +53,14 @@ public class EgresoController {
         return ResponseEntity.ok(new ApiResponse<>(true, "Egresos listados", response));
     }
 
+    @GetMapping("/siguiente-correlativo")
+    @PreAuthorize("@moduloAccess.hasAccess(authentication, 'EGRESOS')")
+    @Operation(summary = "Obtener el siguiente número correlativo de egreso")
+    public ResponseEntity<ApiResponse<String>> obtenerSiguienteCorrelativo() {
+        String siguiente = egresoService.obtenerSiguienteNumeroEgreso();
+        return ResponseEntity.ok(new ApiResponse<>(true, "Siguiente número de egreso obtenido", siguiente));
+    }
+
     @GetMapping("/{id}")
     @PreAuthorize("@moduloAccess.hasAccess(authentication, 'EGRESOS')")
     @Operation(summary = "Obtener egreso por ID")

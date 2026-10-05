@@ -17,4 +17,6 @@ public interface IEgresoService {
     EgresoResponse registrar(EgresoCreateRequest request);
 
     EgresoResponse anular(Integer id);
+
+    String obtenerSiguienteNumeroEgreso();
 }

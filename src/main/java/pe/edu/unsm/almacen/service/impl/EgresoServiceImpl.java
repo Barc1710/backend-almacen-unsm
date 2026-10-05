@@ -407,17 +407,29 @@ public class EgresoServiceImpl implements IEgresoService {
     }
 
     private EgresoResponse crearEgresoResponse(Egreso egreso, BigDecimal total, List<DetalleEgresoResponse> detalles) {
+        String nombreEncargadoAlmacen = egreso.getEncargadoAlmacen() != null ? egreso.getEncargadoAlmacen().getNombre() : null;
+        if (nombreEncargadoAlmacen == null || nombreEncargadoAlmacen.isBlank()) {
+            if (egreso.getUsuario() != null && egreso.getUsuario().getNombreCompleto() != null) {
+                nombreEncargadoAlmacen = egreso.getUsuario().getNombreCompleto();
+            }
+        }
+
+        String nombreEncargado = egreso.getEncargado() != null ? egreso.getEncargado().getNombreCompleto() : null;
+        if (nombreEncargado == null || nombreEncargado.isBlank()) {
+            nombreEncargado = egreso.getNombreEncargadoLibre();
+        }
+
         return new EgresoResponse(
                 egreso.getId(),
                 egreso.getCliente() != null ? egreso.getCliente().getId() : null,
                 egreso.getCliente() != null ? egreso.getCliente().getNombre() : null,
                 egreso.getEncargado() != null ? egreso.getEncargado().getId() : null,
-                egreso.getEncargado() != null ? egreso.getEncargado().getNombreCompleto() : null,
+                nombreEncargado,
                 egreso.getNombreEncargadoLibre(),
                 egreso.getArea() != null ? egreso.getArea().getId() : null,
                 egreso.getArea() != null ? egreso.getArea().getNombre() : null,
                 egreso.getEncargadoAlmacen() != null ? egreso.getEncargadoAlmacen().getId() : null,
-                egreso.getEncargadoAlmacen() != null ? egreso.getEncargadoAlmacen().getNombre() : null,
+                nombreEncargadoAlmacen,
                 egreso.getUsuario() != null ? egreso.getUsuario().getId() : null,
                 egreso.getUsuario() != null ? egreso.getUsuario().getNombreCompleto() : null,
                 egreso.getAmbiente(),
@@ -475,5 +487,14 @@ public class EgresoServiceImpl implements IEgresoService {
         if (valor instanceof BigDecimal bd) return bd;
         if (valor instanceof Number num) return BigDecimal.valueOf(num.doubleValue());
         return new BigDecimal(valor.toString());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public String obtenerSiguienteNumeroEgreso() {
+        String prefijo = "E" + String.format("%02d", Year.now().getValue() % 100);
+        Integer maxCorrelativo = egresoRepository.obtenerMaximoCorrelativo(prefijo);
+        int nuevoCorrelativo = (maxCorrelativo != null ? maxCorrelativo : 0) + 1;
+        return String.format("%s-%04d", prefijo, nuevoCorrelativo);
     }
 }

@@ -8,7 +8,7 @@ CREATE TABLE egreso (
     ambiente             VARCHAR(100)                          NULL,
     prefijo              VARCHAR(10) DEFAULT ''                NOT NULL,
     correlativo          INT         DEFAULT 0                 NOT NULL,
-    tipo_egreso          VARCHAR(30) DEFAULT 'DESPACHO'        NOT NULL,
+    tipo_egreso          VARCHAR(30) DEFAULT 'DESPACHO_ORDINARIO'        NOT NULL,
     motivo_baja          VARCHAR(255)                          NULL,
     fecha                DATETIME    DEFAULT CURRENT_TIMESTAMP NOT NULL,
     estado               CHAR(1)     DEFAULT '1'               NOT NULL,
