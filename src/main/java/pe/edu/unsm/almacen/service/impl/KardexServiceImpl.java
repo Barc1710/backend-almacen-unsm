@@ -42,6 +42,7 @@ public class KardexServiceImpl implements IKardexService {
             Integer idArticulo,
             LocalDate desde,
             LocalDate hasta,
+            TipoMovimiento tipoMovimiento,
             Pageable pageable) {
         if (!articuloRepository.existsById(idArticulo)) {
             throw new ResourceNotFoundException("Artículo no encontrado con ID: " + idArticulo);
@@ -55,18 +56,19 @@ public class KardexServiceImpl implements IKardexService {
             pageableAjustado = PageRequest.of(
                     pageable.getPageNumber(),
                     pageable.getPageSize(),
-                    Sort.by(Sort.Direction.ASC, "fechaHora").and(Sort.by(Sort.Direction.ASC, "id"))
+                    Sort.by(Sort.Direction.DESC, "fechaHora").and(Sort.by(Sort.Direction.DESC, "id"))
             );
         } else {
             pageableAjustado = PageRequest.of(
                     pageable.getPageNumber(),
                     pageable.getPageSize(),
-                    pageable.getSort().and(Sort.by(Sort.Direction.ASC, "id"))
+                    pageable.getSort().and(Sort.by(Sort.Direction.DESC, "id"))
             );
         }
 
         Page<KardexMovimiento> page = kardexMovimientoRepository.filtrarMovimientos(
                 idArticulo,
+                tipoMovimiento,
                 desdeDateTime,
                 hastaDateTime,
                 pageableAjustado
@@ -82,6 +84,7 @@ public class KardexServiceImpl implements IKardexService {
     public PageResponse<KardexMovimientoResponse> listarGeneral(
             LocalDate desde,
             LocalDate hasta,
+            TipoMovimiento tipoMovimiento,
             Pageable pageable) {
         LocalDateTime desdeDateTime = desde != null ? desde.atStartOfDay() : null;
         LocalDateTime hastaDateTime = hasta != null ? hasta.atTime(23, 59, 59) : null;
@@ -97,6 +100,7 @@ public class KardexServiceImpl implements IKardexService {
 
         Page<KardexMovimiento> page = kardexMovimientoRepository.filtrarMovimientos(
                 null,
+                tipoMovimiento,
                 desdeDateTime,
                 hastaDateTime,
                 pageableAjustado

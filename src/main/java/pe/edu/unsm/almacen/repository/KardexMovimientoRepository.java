@@ -8,24 +8,28 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import pe.edu.unsm.almacen.entity.KardexMovimiento;
+import pe.edu.unsm.almacen.entity.TipoMovimiento;
 
 public interface KardexMovimientoRepository extends JpaRepository<KardexMovimiento, Long> {
 
     @Query(value = """
         SELECT k FROM KardexMovimiento k
         WHERE (:idArticulo IS NULL OR k.articulo.id = :idArticulo)
+          AND (:tipoMovimiento IS NULL OR k.tipoMovimiento = :tipoMovimiento)
           AND (:desde IS NULL OR k.fechaHora >= :desde)
           AND (:hasta IS NULL OR k.fechaHora <= :hasta)
         """,
         countQuery = """
         SELECT COUNT(k) FROM KardexMovimiento k
         WHERE (:idArticulo IS NULL OR k.articulo.id = :idArticulo)
+          AND (:tipoMovimiento IS NULL OR k.tipoMovimiento = :tipoMovimiento)
           AND (:desde IS NULL OR k.fechaHora >= :desde)
           AND (:hasta IS NULL OR k.fechaHora <= :hasta)
         """)
     @EntityGraph(attributePaths = {"articulo", "usuario"})
     Page<KardexMovimiento> filtrarMovimientos(
             @Param("idArticulo") Integer idArticulo,
+            @Param("tipoMovimiento") TipoMovimiento tipoMovimiento,
             @Param("desde") LocalDateTime desde,
             @Param("hasta") LocalDateTime hasta,
             Pageable pageable
