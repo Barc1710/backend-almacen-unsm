@@ -43,9 +43,9 @@ public class ArticuloController {
             @RequestParam(name = "codigo", required = false) String codigo,
             @RequestParam(name = "descripcion", required = false) String descripcion,
             @RequestParam(name = "idFamilia", required = false) Integer idFamilia,
-            @RequestParam(name = "estado", required = false) String estado,
+            @RequestParam(name = "activo", required = false) Boolean activo,
             Pageable pageable) {
-        PageResponse<ArticuloResponse> response = articuloService.listar(filtro, codigo, descripcion, idFamilia, estado, pageable);
+        PageResponse<ArticuloResponse> response = articuloService.listar(filtro, codigo, descripcion, idFamilia, activo, pageable);
         return ResponseEntity.ok(new ApiResponse<>(true, "Artículos listados", response));
     }
 
