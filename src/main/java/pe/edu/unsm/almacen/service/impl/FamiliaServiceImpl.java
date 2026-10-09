@@ -1,6 +1,10 @@
 package pe.edu.unsm.almacen.service.impl;
 
+import java.text.Normalizer;
 import java.util.List;
+import java.util.Locale;
+import java.util.Optional;
+import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -10,6 +14,8 @@ import pe.edu.unsm.almacen.dto.common.PageResponse;
 import pe.edu.unsm.almacen.dto.request.FamiliaRequest;
 import pe.edu.unsm.almacen.dto.response.FamiliaResponse;
 import pe.edu.unsm.almacen.entity.Familia;
+import pe.edu.unsm.almacen.exception.BusinessException;
+import pe.edu.unsm.almacen.exception.DuplicateResourceException;
 import pe.edu.unsm.almacen.exception.ResourceNotFoundException;
 import pe.edu.unsm.almacen.repository.FamiliaRepository;
 import pe.edu.unsm.almacen.service.IFamiliaService;
@@ -45,17 +51,140 @@ public class FamiliaServiceImpl implements IFamiliaService {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public String sugerirInicial(String nombre) {
+        Set<String> inicialesOcupadas = familiaRepository.findAllInicialesActivas();
+
+        String limpio = "";
+        if (nombre != null && !nombre.isBlank()) {
+            limpio = Normalizer.normalize(nombre.trim(), Normalizer.Form.NFD)
+                    .replaceAll("[^\\p{ASCII}]", "")
+                    .replaceAll("[^a-zA-Z]", "")
+                    .toUpperCase(Locale.ROOT);
+        }
+
+        if (!limpio.isEmpty()) {
+            // Probar la primera letra (ej. 'C')
+            String unaLetra = limpio.substring(0, 1);
+            if (!inicialesOcupadas.contains(unaLetra)) {
+                return unaLetra;
+            }
+
+            // Probar las 2 primeras letras (ej. 'CO')
+            if (limpio.length() >= 2) {
+                String dosLetras = limpio.substring(0, 2);
+                if (!inicialesOcupadas.contains(dosLetras)) {
+                    return dosLetras;
+                }
+            }
+
+            // Probar 1ra letra + siguiente letra de la palabra
+            char primera = unaLetra.charAt(0);
+            for (int i = 2; i < limpio.length(); i++) {
+                String candidata = "" + primera + limpio.charAt(i);
+                if (!inicialesOcupadas.contains(candidata)) {
+                    return candidata;
+                }
+            }
+
+            // Probar 1ra letra + 'A'..'Z'
+            for (char c = 'A'; c <= 'Z'; c++) {
+                String candidata = "" + primera + c;
+                if (!inicialesOcupadas.contains(candidata)) {
+                    return candidata;
+                }
+            }
+        }
+
+        // Probar letras individuales 'A'..'Z'
+        for (char c = 'A'; c <= 'Z'; c++) {
+            String candidata = String.valueOf(c);
+            if (!inicialesOcupadas.contains(candidata)) {
+                return candidata;
+            }
+        }
+
+        // Probar combinaciones AA..ZZ
+        for (char c1 = 'A'; c1 <= 'Z'; c1++) {
+            for (char c2 = 'A'; c2 <= 'Z'; c2++) {
+                String candidata = "" + c1 + c2;
+                if (!inicialesOcupadas.contains(candidata)) {
+                    return candidata;
+                }
+            }
+        }
+
+        throw new BusinessException("No hay iniciales disponibles en el sistema.");
+    }
+
+    @Override
     @Transactional
     public FamiliaResponse crear(FamiliaRequest request) {
+        String nombreLimpio = request.nombre().trim();
+
+        // 1. Validar si ya existe activa con el mismo nombre
+        List<Familia> existentesPorNombre = familiaRepository.findByNombreIgnoreCase(nombreLimpio);
+        boolean nombreActivoExiste = existentesPorNombre.stream()
+                .anyMatch(f -> "1".equals(f.getEstado()));
+        if (nombreActivoExiste) {
+            throw new DuplicateResourceException("El nombre ya está registrado.");
+        }
+
+        // 2. Reactivación si existe previamente dada de baja
+        Optional<Familia> inactivaPorNombre = existentesPorNombre.stream()
+                .filter(f -> "0".equals(f.getEstado()))
+                .findFirst();
+
+        if (inactivaPorNombre.isPresent()) {
+            Familia aReactivar = inactivaPorNombre.get();
+            String inicialFinal;
+
+            if (request.inicial() != null && !request.inicial().isBlank()) {
+                inicialFinal = request.inicial().trim().toUpperCase(Locale.ROOT);
+                if (!inicialFinal.equalsIgnoreCase(aReactivar.getInicial())) {
+                    validarFormatoInicialNueva(inicialFinal);
+                }
+                if (familiaRepository.existsByInicialIgnoreCaseAndIdNotAndEstado(inicialFinal, aReactivar.getId(), "1")) {
+                    throw new DuplicateResourceException("La inicial ya está registrada.");
+                }
+            } else {
+                if (familiaRepository.existsByInicialIgnoreCaseAndIdNotAndEstado(aReactivar.getInicial(), aReactivar.getId(), "1")) {
+                    inicialFinal = sugerirInicial(nombreLimpio);
+                } else {
+                    inicialFinal = aReactivar.getInicial();
+                }
+            }
+
+            aReactivar.setNombre(nombreLimpio);
+            aReactivar.setInicial(inicialFinal);
+            aReactivar.setEstado("1");
+            return mapToResponse(familiaRepository.save(aReactivar));
+        }
+
+        // 3. Registro nuevo
+        String inicialFinal;
+        if (request.inicial() == null || request.inicial().isBlank()) {
+            inicialFinal = sugerirInicial(nombreLimpio);
+        } else {
+            inicialFinal = request.inicial().trim().toUpperCase(Locale.ROOT);
+            validarFormatoInicialNueva(inicialFinal);
+        }
+
+        List<Familia> existentesPorInicial = familiaRepository.findByInicialIgnoreCase(inicialFinal);
+        boolean inicialActivaExiste = existentesPorInicial.stream()
+                .anyMatch(f -> "1".equals(f.getEstado()));
+        if (inicialActivaExiste) {
+            throw new DuplicateResourceException("La inicial ya está registrada.");
+        }
+
         Familia familia = Familia.builder()
-                .nombre(request.nombre().trim())
-                .inicial(request.inicial().trim().toUpperCase())
+                .nombre(nombreLimpio)
+                .inicial(inicialFinal)
                 .correlativo(1)
                 .estado("1")
                 .build();
-        Familia familiaGuardada = familiaRepository.save(familia);
 
-        return mapToResponse(familiaGuardada);
+        return mapToResponse(familiaRepository.save(familia));
     }
 
     @Override
@@ -64,9 +193,38 @@ public class FamiliaServiceImpl implements IFamiliaService {
         Familia familia = familiaRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Familia no encontrada con id: " + id));
 
-        familia.setNombre(request.nombre().trim());
-        familia.setInicial(request.inicial().trim().toUpperCase());
+        String nombreLimpio = request.nombre().trim();
+        String inicialFinal;
+
+        if (request.inicial() == null || request.inicial().isBlank()) {
+            inicialFinal = familia.getInicial();
+        } else {
+            inicialFinal = request.inicial().trim().toUpperCase(Locale.ROOT);
+            if (!inicialFinal.equalsIgnoreCase(familia.getInicial())) {
+                validarFormatoInicialNueva(inicialFinal);
+            }
+        }
+
+        if (familiaRepository.existsByNombreIgnoreCaseAndIdNotAndEstado(nombreLimpio, id, "1")) {
+            throw new DuplicateResourceException("El nombre ya está registrado.");
+        }
+
+        if (familiaRepository.existsByInicialIgnoreCaseAndIdNotAndEstado(inicialFinal, id, "1")) {
+            throw new DuplicateResourceException("La inicial ya está registrada.");
+        }
+
+        familia.setNombre(nombreLimpio);
+        familia.setInicial(inicialFinal);
         return mapToResponse(familiaRepository.save(familia));
+    }
+
+    private void validarFormatoInicialNueva(String inicial) {
+        if (inicial.length() > 2) {
+            throw new BusinessException("La inicial debe tener como máximo 2 letras.");
+        }
+        if (!inicial.matches("^[A-Z]{1,2}$")) {
+            throw new BusinessException("La inicial debe contener solo letras (máx. 2).");
+        }
     }
 
     @Override

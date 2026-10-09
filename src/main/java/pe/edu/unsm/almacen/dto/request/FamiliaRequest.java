@@ -8,7 +8,6 @@ public record FamiliaRequest(
         @Size(max = 100, message = "El nombre de la familia no debe exceder 100 caracteres")
         String nombre,
 
-        @NotBlank(message = "La inicial es obligatoria")
         @Size(max = 10, message = "La inicial no debe exceder 10 caracteres")
         String inicial
 ) {
