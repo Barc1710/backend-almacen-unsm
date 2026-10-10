@@ -89,6 +89,15 @@ public class ModuloAccess {
         if ("USUARIOS".equals(clean) || "SEGURIDAD_USUARIOS".equals(clean)) {
             return List.of(clean, "SEGURIDAD_USUARIOS", "USUARIOS", "SEGURIDAD");
         }
+        if ("EGRESOS".equals(clean) || "DESPACHOS".equals(clean) || "SALIDAS".equals(clean)) {
+            return List.of(clean, "EGRESOS", "DESPACHOS", "SALIDAS");
+        }
+        if ("INGRESOS".equals(clean) || "ENTRADAS".equals(clean)) {
+            return List.of(clean, "INGRESOS", "ENTRADAS");
+        }
+        if ("ENCARGADOS".equals(clean) || "ENCARGADOS_JEFE".equals(clean) || "ENCARGADOS_ALMACEN".equals(clean) || "JEFE".equals(clean)) {
+            return List.of(clean, "ENCARGADOS", "ENCARGADOS_JEFE", "ENCARGADOS_ALMACEN", "JEFE");
+        }
         if ("SEGURIDAD".equals(clean)) {
             return List.of(clean, "SEGURIDAD_USUARIOS", "SEGURIDAD_PERFILES", "SEGURIDAD");
         }
@@ -97,7 +106,8 @@ public class ModuloAccess {
 
     private boolean esAdministrador(Usuario usuario) {
         Perfil perfil = usuario.getPerfil();
-        return Integer.valueOf(1).equals(perfil.getIdPerfil())
+        return perfil != null
+                && Integer.valueOf(1).equals(perfil.getIdPerfil())
                 && "ADMINISTRADOR".equalsIgnoreCase(perfil.getNombrePerfil().trim());
     }
 }
