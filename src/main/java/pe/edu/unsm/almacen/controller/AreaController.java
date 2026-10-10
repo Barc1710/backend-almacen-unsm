@@ -78,7 +78,7 @@ public class AreaController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ADMINISTRADOR') and @moduloAccess.hasAccess(authentication, 'EGRESOS')")
+    @PreAuthorize("@moduloAccess.hasAccess(authentication, 'EGRESOS')")
     @Operation(summary = "Desactivar área")
     public ResponseEntity<ApiResponse<Void>> eliminar(@PathVariable("id") Integer id) {
         areaService.cambiarEstado(id, "0");

@@ -22,23 +22,25 @@ public interface ArticuloRepository extends JpaRepository<Articulo, Integer> {
 
     @EntityGraph(attributePaths = {"familia", "marca", "ubicacion", "unidadMedida"})
     @Query(value = "SELECT a FROM Articulo a WHERE " +
+           "a.estado = '1' AND " +
            "(:filtro IS NULL OR :filtro = '' OR LOWER(a.codigo) LIKE LOWER(CONCAT('%', :filtro, '%')) OR LOWER(a.descripcion) LIKE LOWER(CONCAT('%', :filtro, '%'))) AND " +
            "(:codigo IS NULL OR :codigo = '' OR LOWER(a.codigo) LIKE LOWER(CONCAT('%', :codigo, '%'))) AND " +
            "(:descripcion IS NULL OR :descripcion = '' OR LOWER(a.descripcion) LIKE LOWER(CONCAT('%', :descripcion, '%'))) AND " +
            "(:idFamilia IS NULL OR a.familia.id = :idFamilia) AND " +
-           "(:estado IS NULL OR :estado = '' OR a.estado = :estado)",
+           "(:activo IS NULL OR a.activo = :activo)",
            countQuery = "SELECT COUNT(a) FROM Articulo a WHERE " +
+           "a.estado = '1' AND " +
            "(:filtro IS NULL OR :filtro = '' OR LOWER(a.codigo) LIKE LOWER(CONCAT('%', :filtro, '%')) OR LOWER(a.descripcion) LIKE LOWER(CONCAT('%', :filtro, '%'))) AND " +
            "(:codigo IS NULL OR :codigo = '' OR LOWER(a.codigo) LIKE LOWER(CONCAT('%', :codigo, '%'))) AND " +
            "(:descripcion IS NULL OR :descripcion = '' OR LOWER(a.descripcion) LIKE LOWER(CONCAT('%', :descripcion, '%'))) AND " +
            "(:idFamilia IS NULL OR a.familia.id = :idFamilia) AND " +
-           "(:estado IS NULL OR :estado = '' OR a.estado = :estado)")
+           "(:activo IS NULL OR a.activo = :activo)")
     Page<Articulo> listarPaginado(
             @Param("filtro") String filtro,
             @Param("codigo") String codigo,
             @Param("descripcion") String descripcion,
             @Param("idFamilia") Integer idFamilia,
-            @Param("estado") String estado,
+            @Param("activo") Boolean activo,
             Pageable pageable
     );
 

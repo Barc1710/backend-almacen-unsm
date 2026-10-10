@@ -48,9 +48,9 @@ public class ArticuloServiceImpl implements IArticuloService {
             String codigo,
             String descripcion,
             Integer idFamilia,
-            String estado,
+            Boolean activo,
             Pageable pageable) {
-        Page<Articulo> page = articuloRepository.listarPaginado(filtro, codigo, descripcion, idFamilia, estado, pageable);
+        Page<Articulo> page = articuloRepository.listarPaginado(filtro, codigo, descripcion, idFamilia, activo, pageable);
         return PageResponse.of(page.map(this::mapToResponse));
     }
 

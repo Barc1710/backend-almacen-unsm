@@ -78,7 +78,7 @@ public class ProveedorController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ADMINISTRADOR') and @moduloAccess.hasAccess(authentication, 'PROVEEDORES')")
+    @PreAuthorize("@moduloAccess.hasAccess(authentication, 'PROVEEDORES')")
     @Operation(summary = "Desactivar proveedor")
     public ResponseEntity<ApiResponse<Void>> eliminar(@PathVariable("id") Integer id) {
         proveedorService.cambiarEstado(id, "0");

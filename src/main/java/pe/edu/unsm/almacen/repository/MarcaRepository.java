@@ -12,6 +12,10 @@ public interface MarcaRepository extends JpaRepository<Marca, Integer> {
 
     List<Marca> findByEstadoOrderByNombreAsc(String estado);
 
-    @Query("SELECT m FROM Marca m WHERE (:filtro IS NULL OR :filtro = '' OR LOWER(m.nombre) LIKE LOWER(CONCAT('%', :filtro, '%')))")
+    @Query("SELECT m FROM Marca m WHERE m.estado = '1' AND (:filtro IS NULL OR :filtro = '' OR LOWER(m.nombre) LIKE LOWER(CONCAT('%', :filtro, '%')))")
     Page<Marca> buscar(@Param("filtro") String filtro, Pageable pageable);
+
+    List<Marca> findByNombreIgnoreCase(String nombre);
+
+    boolean existsByNombreIgnoreCaseAndIdNotAndEstado(String nombre, Integer id, String estado);
 }

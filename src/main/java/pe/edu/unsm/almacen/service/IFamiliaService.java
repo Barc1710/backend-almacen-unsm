@@ -19,4 +19,6 @@ public interface IFamiliaService {
     FamiliaResponse actualizar(Integer id, FamiliaRequest request);
 
     void cambiarEstado(Integer id, String nuevoEstado);
+
+    String sugerirInicial(String nombre);
 }

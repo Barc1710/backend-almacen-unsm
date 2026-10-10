@@ -16,7 +16,9 @@ INSERT INTO modulo (id_modulo, codigo, nombre, url, icono, orden, estado) VALUES
 (9,  'CLIENTES',             'Clientes',             '/clientes',             'building-2',       9, 1),
 (10, 'SEGURIDAD_USUARIOS',   'Usuarios',             '/seguridad/usuarios',   'users',            10, 1),
 (11, 'SEGURIDAD_PERFILES',   'Perfiles y Permisos',  '/seguridad/perfiles',   'shield-check',     11, 1),
-(12, 'ENCARGADOS',           'Encargados',           '/encargados',           'user-check',       12, 1);
+(12, 'ENCARGADOS_JEFE',      'Jefe',                 '/encargados/jefe',      'user-check',       12, 1),
+(13, 'ENCARGADOS_ALMACEN',   'Encargados de Almacén', '/encargados/almacen',  'warehouse',        13, 1);
+
 
 -- 3. PERMISOS
 INSERT INTO permiso (id_permiso, idperfil, idmodulo, estadopermiso) VALUES
@@ -40,7 +42,8 @@ INSERT INTO permiso (id_permiso, idperfil, idmodulo, estadopermiso) VALUES
 (18, 2, 6, 1),
 (19, 2, 7, 1),
 (20, 2, 8, 1),
-(21, 2, 9, 1);
+(21, 2, 9, 1),
+(22, 1, 13, 1);
 
 -- 4. ÁREAS BASE
 INSERT INTO area (id, nombre, estado) VALUES 

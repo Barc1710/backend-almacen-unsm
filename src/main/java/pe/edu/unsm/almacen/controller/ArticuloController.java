@@ -43,9 +43,9 @@ public class ArticuloController {
             @RequestParam(name = "codigo", required = false) String codigo,
             @RequestParam(name = "descripcion", required = false) String descripcion,
             @RequestParam(name = "idFamilia", required = false) Integer idFamilia,
-            @RequestParam(name = "estado", required = false) String estado,
+            @RequestParam(name = "activo", required = false) Boolean activo,
             Pageable pageable) {
-        PageResponse<ArticuloResponse> response = articuloService.listar(filtro, codigo, descripcion, idFamilia, estado, pageable);
+        PageResponse<ArticuloResponse> response = articuloService.listar(filtro, codigo, descripcion, idFamilia, activo, pageable);
         return ResponseEntity.ok(new ApiResponse<>(true, "Artículos listados", response));
     }
 
@@ -95,7 +95,7 @@ public class ArticuloController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ADMINISTRADOR') and (@moduloAccess.hasAccess(authentication, 'INVENTARIO_ARTICULOS') or @moduloAccess.hasAccess(authentication, 'INVENTARIO'))")
+    @PreAuthorize("@moduloAccess.hasAccess(authentication, 'INVENTARIO_ARTICULOS') or @moduloAccess.hasAccess(authentication, 'INVENTARIO')")
     @Operation(summary = "Desactivar artículo")
     public ResponseEntity<ApiResponse<Void>> eliminar(@PathVariable("id") Integer id) {
         articuloService.cambiarEstado(id, "0");
@@ -103,7 +103,7 @@ public class ArticuloController {
     }
 
     @PatchMapping("/{id}/toggle-activo")
-    @PreAuthorize("hasRole('ADMINISTRADOR') and (@moduloAccess.hasAccess(authentication, 'INVENTARIO_ARTICULOS') or @moduloAccess.hasAccess(authentication, 'INVENTARIO'))")
+    @PreAuthorize("@moduloAccess.hasAccess(authentication, 'INVENTARIO_ARTICULOS') or @moduloAccess.hasAccess(authentication, 'INVENTARIO')")
     @Operation(summary = "Cambiar operatividad del artículo")
     public ResponseEntity<ApiResponse<ArticuloResponse>> toggleActivo(@PathVariable("id") Integer id) {
         ArticuloResponse response = articuloService.toggleActivo(id);

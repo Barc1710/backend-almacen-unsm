@@ -30,7 +30,7 @@ public class EncargadoAlmacenServiceImpl implements IEncargadoAlmacenService {
     @Override
     @Transactional(readOnly = true)
     public List<EncargadoAlmacenResponse> listarActivos() {
-        return encargadoAlmacenRepository.findByEstadoOrderByNombreAsc("1")
+        return encargadoAlmacenRepository.findByEstadoOrderByApellidosAsc("1")
                 .stream()
                 .map(this::mapToResponse)
                 .toList();
@@ -48,7 +48,9 @@ public class EncargadoAlmacenServiceImpl implements IEncargadoAlmacenService {
     @Transactional
     public EncargadoAlmacenResponse crear(EncargadoAlmacenRequest request) {
         EncargadoAlmacen encargadoAlmacen = EncargadoAlmacen.builder()
-                .nombre(request.nombre().trim())
+                .nombres(request.nombres().trim())
+                .apellidos(request.apellidos().trim())
+                .dni(request.dni() != null && !request.dni().isBlank() ? request.dni().trim() : null)
                 .esTitular(Boolean.TRUE.equals(request.esTitular()))
                 .estado("1")
                 .build();
@@ -61,7 +63,9 @@ public class EncargadoAlmacenServiceImpl implements IEncargadoAlmacenService {
         EncargadoAlmacen encargadoAlmacen = encargadoAlmacenRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Encargado de almacén no encontrado con id: " + id));
 
-        encargadoAlmacen.setNombre(request.nombre().trim());
+        encargadoAlmacen.setNombres(request.nombres().trim());
+        encargadoAlmacen.setApellidos(request.apellidos().trim());
+        encargadoAlmacen.setDni(request.dni() != null && !request.dni().isBlank() ? request.dni().trim() : null);
         if (request.esTitular() != null) {
             encargadoAlmacen.setEsTitular(request.esTitular());
         }
@@ -80,7 +84,10 @@ public class EncargadoAlmacenServiceImpl implements IEncargadoAlmacenService {
     private EncargadoAlmacenResponse mapToResponse(EncargadoAlmacen encargadoAlmacen) {
         return new EncargadoAlmacenResponse(
                 encargadoAlmacen.getId(),
-                encargadoAlmacen.getNombre(),
+                encargadoAlmacen.getNombres(),
+                encargadoAlmacen.getApellidos(),
+                encargadoAlmacen.getNombreCompleto(),
+                encargadoAlmacen.getDni(),
                 encargadoAlmacen.getEstado(),
                 encargadoAlmacen.getEsTitular()
         );

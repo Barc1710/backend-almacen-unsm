@@ -1,6 +1,7 @@
 package pe.edu.unsm.almacen.service.impl;
 
 import java.util.List;
+import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -10,6 +11,7 @@ import pe.edu.unsm.almacen.dto.common.PageResponse;
 import pe.edu.unsm.almacen.dto.request.MarcaRequest;
 import pe.edu.unsm.almacen.dto.response.MarcaResponse;
 import pe.edu.unsm.almacen.entity.Marca;
+import pe.edu.unsm.almacen.exception.DuplicateResourceException;
 import pe.edu.unsm.almacen.exception.ResourceNotFoundException;
 import pe.edu.unsm.almacen.repository.MarcaRepository;
 import pe.edu.unsm.almacen.service.IMarcaService;
@@ -47,10 +49,34 @@ public class MarcaServiceImpl implements IMarcaService {
     @Override
     @Transactional
     public MarcaResponse crear(MarcaRequest request) {
+        String nombreLimpio = request.nombre().trim();
+
+        List<Marca> existentes = marcaRepository.findByNombreIgnoreCase(nombreLimpio);
+
+        // 1. Validar si ya existe activa con el mismo nombre
+        boolean activoExiste = existentes.stream().anyMatch(m -> "1".equals(m.getEstado()));
+        if (activoExiste) {
+            throw new DuplicateResourceException("El nombre ya está registrado.");
+        }
+
+        // 2. Reactivación si existía previamente dada de baja
+        Optional<Marca> inactiva = existentes.stream()
+                .filter(m -> "0".equals(m.getEstado()))
+                .findFirst();
+
+        if (inactiva.isPresent()) {
+            Marca aReactivar = inactiva.get();
+            aReactivar.setNombre(nombreLimpio);
+            aReactivar.setEstado("1");
+            return mapToResponse(marcaRepository.save(aReactivar));
+        }
+
+        // 3. Registro nuevo
         Marca marca = Marca.builder()
-                .nombre(request.nombre().trim())
+                .nombre(nombreLimpio)
                 .estado("1")
                 .build();
+
         return mapToResponse(marcaRepository.save(marca));
     }
 
@@ -60,7 +86,12 @@ public class MarcaServiceImpl implements IMarcaService {
         Marca marca = marcaRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Marca no encontrada con id: " + id));
 
-        marca.setNombre(request.nombre().trim());
+        String nombreLimpio = request.nombre().trim();
+        if (marcaRepository.existsByNombreIgnoreCaseAndIdNotAndEstado(nombreLimpio, id, "1")) {
+            throw new DuplicateResourceException("El nombre ya está registrado.");
+        }
+
+        marca.setNombre(nombreLimpio);
         return mapToResponse(marcaRepository.save(marca));
     }
 

@@ -15,7 +15,7 @@ public interface IArticuloService {
             String codigo,
             String descripcion,
             Integer idFamilia,
-            String estado,
+            Boolean activo,
             Pageable pageable
     );
 

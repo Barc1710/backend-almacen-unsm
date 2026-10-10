@@ -78,7 +78,7 @@ public class ClienteController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ADMINISTRADOR') and @moduloAccess.hasAccess(authentication, 'CLIENTES')")
+    @PreAuthorize("@moduloAccess.hasAccess(authentication, 'CLIENTES')")
     @Operation(summary = "Desactivar cliente")
     public ResponseEntity<ApiResponse<Void>> eliminar(@PathVariable("id") Integer id) {
         clienteService.cambiarEstado(id, "0");

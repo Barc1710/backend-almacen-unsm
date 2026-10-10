@@ -17,7 +17,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -147,12 +146,6 @@ public class EgresoServiceImpl implements IEgresoService {
 
         TipoEgreso tipoEgreso = request.tipoEgreso() != null ? request.tipoEgreso() : TipoEgreso.DESPACHO_ORDINARIO;
         if (tipoEgreso != TipoEgreso.DESPACHO_ORDINARIO) {
-            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-            boolean esAdmin = auth != null && auth.getAuthorities().stream()
-                    .anyMatch(a -> a.getAuthority().equals("ROLE_ADMINISTRADOR"));
-            if (!esAdmin) {
-                throw new AccessDeniedException("Solo ADMINISTRADOR puede registrar una baja.");
-            }
             if (request.motivoBaja() == null || request.motivoBaja().trim().isEmpty()) {
                 throw new BusinessException("El motivo o justificación de la baja es obligatorio.");
             }

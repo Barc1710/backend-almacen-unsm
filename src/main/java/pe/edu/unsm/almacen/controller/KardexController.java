@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
 import pe.edu.unsm.almacen.dto.common.ApiResponse;
 import pe.edu.unsm.almacen.dto.common.PageResponse;
 import pe.edu.unsm.almacen.dto.response.KardexMovimientoResponse;
+import pe.edu.unsm.almacen.entity.TipoMovimiento;
 import pe.edu.unsm.almacen.service.IKardexService;
 
 @RestController
@@ -33,8 +34,9 @@ public class KardexController {
             @PathVariable("idArticulo") Integer idArticulo,
             @RequestParam(name = "desde", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate desde,
             @RequestParam(name = "hasta", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate hasta,
+            @RequestParam(name = "tipoMovimiento", required = false) TipoMovimiento tipoMovimiento,
             Pageable pageable) {
-        PageResponse<KardexMovimientoResponse> response = kardexService.listarPorArticulo(idArticulo, desde, hasta, pageable);
+        PageResponse<KardexMovimientoResponse> response = kardexService.listarPorArticulo(idArticulo, desde, hasta, tipoMovimiento, pageable);
         return ResponseEntity.ok(new ApiResponse<>(true, "Kardex del artículo", response));
     }
 
@@ -44,8 +46,9 @@ public class KardexController {
     public ResponseEntity<ApiResponse<PageResponse<KardexMovimientoResponse>>> listarGeneral(
             @RequestParam(name = "desde", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate desde,
             @RequestParam(name = "hasta", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate hasta,
+            @RequestParam(name = "tipoMovimiento", required = false) TipoMovimiento tipoMovimiento,
             Pageable pageable) {
-        PageResponse<KardexMovimientoResponse> response = kardexService.listarGeneral(desde, hasta, pageable);
+        PageResponse<KardexMovimientoResponse> response = kardexService.listarGeneral(desde, hasta, tipoMovimiento, pageable);
         return ResponseEntity.ok(new ApiResponse<>(true, "Movimientos listados", response));
     }
 }
