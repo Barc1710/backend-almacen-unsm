@@ -27,8 +27,14 @@ public class EncargadoAlmacen {
     @Column(name = "id", nullable = false)
     private Integer id;
 
-    @Column(name = "nombre", nullable = false, length = 150)
-    private String nombre;
+    @Column(name = "nombres", nullable = false, length = 100)
+    private String nombres;
+
+    @Column(name = "apellidos", nullable = false, length = 100)
+    private String apellidos;
+
+    @Column(name = "dni", nullable = true, length = 8, columnDefinition = "char(8)")
+    private String dni;
 
     @Column(name = "estado", nullable = false, length = 1, columnDefinition = "char(1)")
     @ColumnDefault("'1'")
@@ -37,4 +43,33 @@ public class EncargadoAlmacen {
     @Column(name = "es_titular", nullable = false)
     @ColumnDefault("0")
     private Boolean esTitular;
+
+    public String getNombreCompleto() {
+        String nom = (nombres != null ? nombres.trim() : "");
+        String ape = (apellidos != null && !apellidos.isBlank() ? " " + apellidos.trim() : "");
+        return (nom + ape).trim();
+    }
+
+    /**
+     * Alias de compatibilidad hacia reportes y módulos de movimientos.
+     */
+    public String getNombre() {
+        return getNombreCompleto();
+    }
+
+    public static class EncargadoAlmacenBuilder {
+        public EncargadoAlmacenBuilder nombre(String nombre) {
+            if (nombre != null) {
+                int firstSpace = nombre.indexOf(' ');
+                if (firstSpace > 0) {
+                    this.nombres = nombre.substring(0, firstSpace).trim();
+                    this.apellidos = nombre.substring(firstSpace + 1).trim();
+                } else {
+                    this.nombres = nombre.trim();
+                    this.apellidos = "";
+                }
+            }
+            return this;
+        }
+    }
 }

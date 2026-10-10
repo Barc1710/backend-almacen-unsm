@@ -11,10 +11,13 @@ import pe.edu.unsm.almacen.entity.EncargadoAlmacen;
 
 public interface EncargadoAlmacenRepository extends JpaRepository<EncargadoAlmacen, Integer> {
 
-    List<EncargadoAlmacen> findByEstadoOrderByNombreAsc(String estado);
+    List<EncargadoAlmacen> findByEstadoOrderByApellidosAsc(String estado);
 
     Optional<EncargadoAlmacen> findFirstByEsTitularTrueAndEstado(String estado);
 
-    @Query("SELECT e FROM EncargadoAlmacen e WHERE (:filtro IS NULL OR :filtro = '' OR LOWER(e.nombre) LIKE LOWER(CONCAT('%', :filtro, '%')))")
+    @Query("SELECT e FROM EncargadoAlmacen e WHERE (:filtro IS NULL OR :filtro = '' OR " +
+           "LOWER(e.nombres) LIKE LOWER(CONCAT('%', :filtro, '%')) OR " +
+           "LOWER(e.apellidos) LIKE LOWER(CONCAT('%', :filtro, '%')) OR " +
+           "LOWER(COALESCE(e.dni, '')) LIKE LOWER(CONCAT('%', :filtro, '%')))")
     Page<EncargadoAlmacen> buscar(@Param("filtro") String filtro, Pageable pageable);
 }

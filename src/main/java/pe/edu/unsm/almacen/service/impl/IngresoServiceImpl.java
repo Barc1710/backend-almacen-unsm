@@ -179,7 +179,7 @@ public class IngresoServiceImpl implements IIngresoService {
                     .orElseThrow(() -> new ResourceNotFoundException("Encargado de almacén no encontrado con ID: " + request.idEncargadoAlmacen()));
         } else {
             encargadoAlmacen = encargadoAlmacenRepository.findFirstByEsTitularTrueAndEstado("1")
-                    .orElseGet(() -> encargadoAlmacenRepository.findByEstadoOrderByNombreAsc("1").stream().findFirst().orElse(null));
+                    .orElseGet(() -> encargadoAlmacenRepository.findByEstadoOrderByApellidosAsc("1").stream().findFirst().orElse(null));
         }
         String nombreEncargadoAlmacen = encargadoAlmacen != null ? encargadoAlmacen.getNombre() : null;
 
