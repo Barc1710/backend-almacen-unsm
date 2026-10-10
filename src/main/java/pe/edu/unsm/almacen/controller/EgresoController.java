@@ -83,7 +83,7 @@ public class EgresoController {
     }
 
     @PostMapping("/{id}/anular")
-    @PreAuthorize("hasRole('ADMINISTRADOR') and @moduloAccess.hasAccess(authentication, 'EGRESOS')")
+    @PreAuthorize("@moduloAccess.hasAccess(authentication, 'EGRESOS')")
     @Operation(summary = "Anular egreso")
     public ResponseEntity<ApiResponse<EgresoResponse>> anular(@PathVariable("id") Integer id) {
         EgresoResponse response = egresoService.anular(id);

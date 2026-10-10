@@ -79,7 +79,7 @@ public class UnidadMedidaController {
     }
 
     @PatchMapping("/{id}/estado")
-    @PreAuthorize("hasRole('ADMINISTRADOR') and @moduloAccess.hasAccess(authentication, 'INVENTARIO')")
+    @PreAuthorize("@moduloAccess.hasAccess(authentication, 'INVENTARIO')")
     @Operation(summary = "Cambiar estado de unidad de medida")
     public ResponseEntity<ApiResponse<Void>> cambiarEstado(
             @PathVariable("id") Integer id,

@@ -95,7 +95,7 @@ public class ArticuloController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ADMINISTRADOR') and (@moduloAccess.hasAccess(authentication, 'INVENTARIO_ARTICULOS') or @moduloAccess.hasAccess(authentication, 'INVENTARIO'))")
+    @PreAuthorize("@moduloAccess.hasAccess(authentication, 'INVENTARIO_ARTICULOS') or @moduloAccess.hasAccess(authentication, 'INVENTARIO')")
     @Operation(summary = "Desactivar artículo")
     public ResponseEntity<ApiResponse<Void>> eliminar(@PathVariable("id") Integer id) {
         articuloService.cambiarEstado(id, "0");
@@ -103,7 +103,7 @@ public class ArticuloController {
     }
 
     @PatchMapping("/{id}/toggle-activo")
-    @PreAuthorize("hasRole('ADMINISTRADOR') and (@moduloAccess.hasAccess(authentication, 'INVENTARIO_ARTICULOS') or @moduloAccess.hasAccess(authentication, 'INVENTARIO'))")
+    @PreAuthorize("@moduloAccess.hasAccess(authentication, 'INVENTARIO_ARTICULOS') or @moduloAccess.hasAccess(authentication, 'INVENTARIO')")
     @Operation(summary = "Cambiar operatividad del artículo")
     public ResponseEntity<ApiResponse<ArticuloResponse>> toggleActivo(@PathVariable("id") Integer id) {
         ArticuloResponse response = articuloService.toggleActivo(id);

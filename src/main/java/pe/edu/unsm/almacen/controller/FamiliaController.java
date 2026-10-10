@@ -87,7 +87,7 @@ public class FamiliaController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ADMINISTRADOR') and @moduloAccess.hasAccess(authentication, 'INVENTARIO_FAMILIAS')")
+    @PreAuthorize("@moduloAccess.hasAccess(authentication, 'INVENTARIO_FAMILIAS')")
     @Operation(summary = "Desactivar familia")
     public ResponseEntity<ApiResponse<Void>> eliminar(@PathVariable("id") Integer id) {
         familiaService.cambiarEstado(id, "0");

@@ -78,7 +78,7 @@ public class MarcaController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ADMINISTRADOR') and @moduloAccess.hasAccess(authentication, 'INVENTARIO_MARCAS')")
+    @PreAuthorize("@moduloAccess.hasAccess(authentication, 'INVENTARIO_MARCAS')")
     @Operation(summary = "Desactivar marca")
     public ResponseEntity<ApiResponse<Void>> eliminar(@PathVariable("id") Integer id) {
         marcaService.cambiarEstado(id, "0");
