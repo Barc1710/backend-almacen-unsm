@@ -47,7 +47,9 @@ CREATE TABLE encargado (
 
 CREATE TABLE encargado_almacen (
     id         INT AUTO_INCREMENT PRIMARY KEY,
-    nombre     VARCHAR(150)           NOT NULL,
+    nombres    VARCHAR(100)           NOT NULL,
+    apellidos  VARCHAR(100)           NOT NULL,
+    dni        CHAR(8)                NULL,
     estado     CHAR(1)    DEFAULT '1' NOT NULL,
     es_titular TINYINT(1) DEFAULT 0   NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
