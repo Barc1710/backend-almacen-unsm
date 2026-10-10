@@ -56,13 +56,13 @@ public class KardexServiceImpl implements IKardexService {
             pageableAjustado = PageRequest.of(
                     pageable.getPageNumber(),
                     pageable.getPageSize(),
-                    Sort.by(Sort.Direction.DESC, "fechaHora").and(Sort.by(Sort.Direction.DESC, "id"))
+                    Sort.by(Sort.Direction.DESC, KardexMovimiento::getFechaHora, KardexMovimiento::getId)
             );
         } else {
             pageableAjustado = PageRequest.of(
                     pageable.getPageNumber(),
                     pageable.getPageSize(),
-                    pageable.getSort().and(Sort.by(Sort.Direction.DESC, "id"))
+                    pageable.getSort().and(Sort.by(Sort.Direction.DESC, KardexMovimiento::getId))
             );
         }
 
@@ -94,7 +94,7 @@ public class KardexServiceImpl implements IKardexService {
             pageableAjustado = PageRequest.of(
                     pageable.getPageNumber(),
                     pageable.getPageSize(),
-                    Sort.by(Sort.Direction.DESC, "fechaHora").and(Sort.by(Sort.Direction.DESC, "id"))
+                    Sort.by(Sort.Direction.DESC, KardexMovimiento::getFechaHora, KardexMovimiento::getId)
             );
         }
 
