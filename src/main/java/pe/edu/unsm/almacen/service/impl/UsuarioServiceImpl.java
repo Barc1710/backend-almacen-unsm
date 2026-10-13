@@ -134,6 +134,17 @@ public class UsuarioServiceImpl implements IUsuarioService {
 
     @Override
     @Transactional
+    public void activar(Integer id) {
+        Usuario usuario = usuarioRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado con id: " + id));
+
+        usuario.setEstado("1");
+        usuarioRepository.save(usuario);
+        log.info("Usuario '{}' activado (id: {})", usuario.getUsuario(), id);
+    }
+
+    @Override
+    @Transactional
     public void resetearClave(Integer id, UsuarioResetClaveRequest request) {
         Usuario usuario = usuarioRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado con id: " + id));
@@ -148,6 +159,8 @@ public class UsuarioServiceImpl implements IUsuarioService {
         return new UsuarioResponse(
                 u.getIdUsuario(),
                 u.getUsuario(),
+                u.getNombre(),
+                u.getApellido(),
                 u.getNombreCompleto(),
                 u.getDni(),
                 u.getCorreo(),

@@ -80,6 +80,13 @@ public class UsuarioController {
         return ResponseEntity.ok(ApiResponse.ok("Usuario desactivado exitosamente", null));
     }
 
+    @PatchMapping("/{id}/activar")
+    @Operation(summary = "Activar usuario")
+    public ResponseEntity<ApiResponse<Void>> activar(@PathVariable Integer id) {
+        usuarioService.activar(id);
+        return ResponseEntity.ok(ApiResponse.ok("Usuario activado exitosamente", null));
+    }
+
     @PatchMapping("/{id}/reset-clave")
     @Operation(summary = "Restablecer contraseña")
     public ResponseEntity<ApiResponse<Void>> resetearClave(
