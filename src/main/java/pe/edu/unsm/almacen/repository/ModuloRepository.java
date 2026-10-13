@@ -12,4 +12,7 @@ public interface ModuloRepository extends JpaRepository<Modulo, Integer> {
     List<Modulo> findByEstadoOrderByOrdenAsc(@Param("estado") Integer estado);
 
     boolean existsByCodigoAndEstado(String codigo, Integer estado);
+
+    @Query("SELECT COUNT(m) FROM Modulo m WHERE m.codigo IS NOT NULL AND m.estado = 1")
+    long countActiveModulos();
 }

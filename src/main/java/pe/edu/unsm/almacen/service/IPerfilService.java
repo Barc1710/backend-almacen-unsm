@@ -8,6 +8,8 @@ import pe.edu.unsm.almacen.dto.response.PerfilResponse;
 
 public interface IPerfilService {
 
+    List<PerfilResponse> listar(Integer estado);
+
     List<PerfilResponse> listarActivos();
 
     PerfilResponse obtenerPorId(Integer id);
@@ -17,6 +19,8 @@ public interface IPerfilService {
     PerfilResponse actualizar(Integer id, PerfilRequest request);
 
     void desactivar(Integer id);
+
+    void activar(Integer id);
 
     PerfilPermisosResponse obtenerModulosPorPerfil(Integer idPerfil);
 

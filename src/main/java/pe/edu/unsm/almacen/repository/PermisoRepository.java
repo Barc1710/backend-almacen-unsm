@@ -20,4 +20,7 @@ public interface PermisoRepository extends JpaRepository<Permiso, Integer> {
     @Modifying(flushAutomatically = true, clearAutomatically = true)
     @Query("DELETE FROM Permiso p WHERE p.perfil.idPerfil = :idPerfil")
     void deleteByPerfil_Id(@Param("idPerfil") Integer idPerfil);
+
+    @Query("SELECT COUNT(p) FROM Permiso p WHERE p.perfil.idPerfil = :idPerfil AND p.estadoPermiso = 1 AND p.modulo.estado = 1 AND p.modulo.codigo IS NOT NULL")
+    long countActiveByPerfilId(@Param("idPerfil") Integer idPerfil);
 }
