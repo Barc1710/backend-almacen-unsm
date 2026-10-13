@@ -3,12 +3,13 @@ package pe.edu.unsm.almacen.service;
 import java.util.List;
 import org.springframework.data.domain.Pageable;
 import pe.edu.unsm.almacen.dto.common.PageResponse;
+import pe.edu.unsm.almacen.dto.request.CrearUsuarioEncargadoRequest;
 import pe.edu.unsm.almacen.dto.request.EncargadoRequest;
 import pe.edu.unsm.almacen.dto.response.EncargadoResponse;
 
 public interface IEncargadoService {
 
-    PageResponse<EncargadoResponse> listarPaginado(String filtro, Pageable pageable);
+    PageResponse<EncargadoResponse> listarPaginado(String filtro, String estado, Pageable pageable);
 
     List<EncargadoResponse> listarActivos();
 
@@ -19,4 +20,6 @@ public interface IEncargadoService {
     EncargadoResponse actualizar(Integer id, EncargadoRequest request);
 
     void cambiarEstado(Integer id, String nuevoEstado);
+
+    EncargadoResponse crearUsuario(Integer id, CrearUsuarioEncargadoRequest request);
 }
