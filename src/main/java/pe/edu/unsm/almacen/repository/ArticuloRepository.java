@@ -91,4 +91,24 @@ public interface ArticuloRepository extends JpaRepository<Articulo, Integer> {
     @Modifying(flushAutomatically = true, clearAutomatically = true)
     @Query("UPDATE Articulo a SET a.activo = :activo WHERE a.id = :id")
     int actualizarActivo(@Param("id") Integer id, @Param("activo") Boolean activo);
+
+    long countByEstado(String estado);
+
+    long countByEstadoAndActivo(String estado, Boolean activo);
+
+    @Query("SELECT COUNT(a) FROM Articulo a WHERE a.estado = '1' AND a.activo = true AND a.saldo <= a.cantidadMinima AND a.saldo > 0")
+    long contarStockBajo();
+
+    @Query("SELECT COUNT(a) FROM Articulo a WHERE a.estado = '1' AND a.activo = true AND a.saldo <= 0")
+    long contarSinStock();
+
+    @Query("SELECT a.familia.id, a.familia.nombre, COUNT(a.id), COALESCE(SUM(a.saldo), 0.00) " +
+           "FROM Articulo a WHERE a.estado = '1' AND a.activo = true " +
+           "GROUP BY a.familia.id, a.familia.nombre ORDER BY SUM(a.saldo) DESC")
+    List<Object[]> obtenerStockPorFamilias();
+
+    @Query("SELECT a FROM Articulo a LEFT JOIN FETCH a.familia LEFT JOIN FETCH a.unidadMedida " +
+           "WHERE a.estado = '1' AND a.activo = true AND a.saldo <= a.cantidadMinima " +
+           "ORDER BY (a.saldo - a.cantidadMinima) ASC, a.saldo ASC")
+    List<Articulo> findArticulosStockCritico(Pageable pageable);
 }
