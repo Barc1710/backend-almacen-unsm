@@ -34,12 +34,12 @@ public class ClienteController {
 
     @GetMapping
     @PreAuthorize("@moduloAccess.canRead(authentication, 'CLIENTES', 'EGRESOS')")
-    @Operation(summary = "Listar clientes paginados")
+    @Operation(summary = "Listar clientes activos paginados")
     public ResponseEntity<ApiResponse<PageResponse<ClienteResponse>>> listar(
             @RequestParam(name = "filtro", required = false) String filtro,
             Pageable pageable) {
         PageResponse<ClienteResponse> response = clienteService.listarPaginado(filtro, pageable);
-        return ResponseEntity.ok(new ApiResponse<>(true, "Clientes listados", response));
+        return ResponseEntity.ok(ApiResponse.success("Clientes listados", response));
     }
 
     @GetMapping("/activos")
@@ -47,7 +47,7 @@ public class ClienteController {
     @Operation(summary = "Listar clientes activos")
     public ResponseEntity<ApiResponse<List<ClienteResponse>>> listarActivos() {
         List<ClienteResponse> response = clienteService.listarActivos();
-        return ResponseEntity.ok(new ApiResponse<>(true, "Clientes activos listados", response));
+        return ResponseEntity.ok(ApiResponse.success("Clientes activos listados", response));
     }
 
     @GetMapping("/{id}")
@@ -55,7 +55,7 @@ public class ClienteController {
     @Operation(summary = "Obtener cliente por ID")
     public ResponseEntity<ApiResponse<ClienteResponse>> obtenerPorId(@PathVariable("id") Integer id) {
         ClienteResponse response = clienteService.obtenerPorId(id);
-        return ResponseEntity.ok(new ApiResponse<>(true, "Cliente obtenido", response));
+        return ResponseEntity.ok(ApiResponse.success("Cliente obtenido", response));
     }
 
     @PostMapping
@@ -64,7 +64,7 @@ public class ClienteController {
     public ResponseEntity<ApiResponse<ClienteResponse>> crear(@Valid @RequestBody ClienteRequest request) {
         ClienteResponse response = clienteService.crear(request);
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(new ApiResponse<>(true, "Cliente creado", response));
+                .body(ApiResponse.success("Cliente creado exitosamente", response));
     }
 
     @PutMapping("/{id}")
@@ -74,14 +74,14 @@ public class ClienteController {
             @PathVariable("id") Integer id,
             @Valid @RequestBody ClienteRequest request) {
         ClienteResponse response = clienteService.actualizar(id, request);
-        return ResponseEntity.ok(new ApiResponse<>(true, "Cliente actualizado", response));
+        return ResponseEntity.ok(ApiResponse.success("Cliente actualizado exitosamente", response));
     }
 
     @DeleteMapping("/{id}")
     @PreAuthorize("@moduloAccess.hasAccess(authentication, 'CLIENTES')")
-    @Operation(summary = "Desactivar cliente")
+    @Operation(summary = "Eliminar cliente lógicamente")
     public ResponseEntity<ApiResponse<Void>> eliminar(@PathVariable("id") Integer id) {
-        clienteService.cambiarEstado(id, "0");
-        return ResponseEntity.ok(new ApiResponse<>(true, "Cliente desactivado", null));
+        clienteService.eliminar(id);
+        return ResponseEntity.ok(ApiResponse.success("Cliente eliminado exitosamente", null));
     }
 }
