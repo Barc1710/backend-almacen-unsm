@@ -10,7 +10,7 @@ public record ClienteRequest(
         @Size(max = 150, message = "El nombre no debe exceder 150 caracteres")
         String nombre,
 
-        @Pattern(regexp = "\\d{8}", message = "El DNI debe contener exactamente 8 dígitos")
+        @Pattern(regexp = "^$|\\d{8}", message = "El DNI debe contener exactamente 8 dígitos")
         String dni,
 
         @Size(max = 50, message = "El teléfono no debe exceder 50 caracteres")

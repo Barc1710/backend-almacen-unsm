@@ -13,7 +13,7 @@ INSERT INTO modulo (id_modulo, codigo, nombre, url, icono, orden, estado) VALUES
 (6,  'EGRESOS',              'Egresos',              '/egresos',              'arrow-up-right',   6, 1),
 (7,  'KARDEX',               'Kardex',               '/kardex',               'clipboard-list',   7, 1),
 (8,  'PROVEEDORES',          'Proveedores',          '/proveedores',          'truck',            8, 1),
-(9,  'CLIENTES',             'Clientes',             '/clientes',             'building-2',       9, 1),
+(9,  'CLIENTES',             'Clientes',             '/clientes',             'user-round',       9, 1),
 (10, 'SEGURIDAD_USUARIOS',   'Usuarios',             '/seguridad/usuarios',   'users',            10, 1),
 (11, 'SEGURIDAD_PERFILES',   'Perfiles y Permisos',  '/seguridad/perfiles',   'shield-check',     11, 1),
 (12, 'ENCARGADOS_JEFE',      'Jefe',                 '/encargados/jefe',      'user-check',       12, 1),
