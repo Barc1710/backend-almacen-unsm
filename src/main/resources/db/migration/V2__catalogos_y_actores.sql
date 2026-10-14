@@ -37,21 +37,29 @@ CREATE TABLE marca (
 
 CREATE TABLE encargado (
     id              INT AUTO_INCREMENT PRIMARY KEY,
+    id_usuario      INT              NULL,
     sigla_profesion VARCHAR(20)      NULL,
     nombres         VARCHAR(100)     NOT NULL,
     apellidos       VARCHAR(100)     NOT NULL,
     dni             CHAR(8)          NULL,
     cargo           VARCHAR(100)     NULL,
-    estado          CHAR(1) DEFAULT '1' NOT NULL
+    estado          CHAR(1) DEFAULT '1' NOT NULL,
+    CONSTRAINT uq_encargado_usuario UNIQUE (id_usuario),
+    CONSTRAINT fk_encargado_usuario FOREIGN KEY (id_usuario) 
+        REFERENCES usuario (id_usuario) ON UPDATE CASCADE ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE encargado_almacen (
     id         INT AUTO_INCREMENT PRIMARY KEY,
+    id_usuario INT                    NULL,
     nombres    VARCHAR(100)           NOT NULL,
     apellidos  VARCHAR(100)           NOT NULL,
     dni        CHAR(8)                NULL,
     estado     CHAR(1)    DEFAULT '1' NOT NULL,
-    es_titular TINYINT(1) DEFAULT 0   NOT NULL
+    es_titular TINYINT(1) DEFAULT 0   NOT NULL,
+    CONSTRAINT uq_encargado_almacen_usuario UNIQUE (id_usuario),
+    CONSTRAINT fk_encargado_almacen_usuario FOREIGN KEY (id_usuario) 
+        REFERENCES usuario (id_usuario) ON UPDATE CASCADE ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE cliente (
