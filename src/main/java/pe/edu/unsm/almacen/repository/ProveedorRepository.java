@@ -12,7 +12,14 @@ public interface ProveedorRepository extends JpaRepository<Proveedor, Integer> {
 
     List<Proveedor> findByEstadoOrderByRazonSocialAsc(String estado);
 
-    @Query("SELECT p FROM Proveedor p WHERE (:filtro IS NULL OR :filtro = '' OR " +
+    long countByEstado(String estado);
+
+    List<Proveedor> findByRuc(String ruc);
+
+    boolean existsByRucAndIdNotAndEstado(String ruc, Integer id, String estado);
+
+    @Query("SELECT p FROM Proveedor p WHERE p.estado = '1' AND " +
+           "(:filtro IS NULL OR :filtro = '' OR " +
            "LOWER(p.razonSocial) LIKE LOWER(CONCAT('%', :filtro, '%')) OR " +
            "LOWER(COALESCE(p.ruc, '')) LIKE LOWER(CONCAT('%', :filtro, '%')) OR " +
            "LOWER(COALESCE(p.contacto, '')) LIKE LOWER(CONCAT('%', :filtro, '%')))")
