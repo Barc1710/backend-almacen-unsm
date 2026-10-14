@@ -6,7 +6,7 @@ import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
 public record ProveedorRequest(
-        @Pattern(regexp = "\\d{11}", message = "El RUC debe contener exactamente 11 dígitos")
+        @Pattern(regexp = "^$|\\d{11}", message = "El RUC debe contener exactamente 11 dígitos")
         String ruc,
 
         @NotBlank(message = "La razón social es obligatoria")

@@ -13,7 +13,7 @@ public record EncargadoAlmacenRequest(
         @Size(max = 100, message = "Los apellidos no deben exceder 100 caracteres")
         String apellidos,
 
-        @Pattern(regexp = "\\d{8}", message = "El DNI debe contener exactamente 8 dígitos")
+        @Pattern(regexp = "^$|\\d{8}", message = "El DNI debe contener exactamente 8 dígitos")
         String dni,
 
         Boolean esTitular

@@ -2,6 +2,7 @@ package pe.edu.unsm.almacen.repository;
 
 import jakarta.persistence.LockModeType;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -76,4 +77,14 @@ public interface IngresoRepository extends JpaRepository<Ingreso, Integer> {
 
     @Query("SELECT MAX(i.correlativo) FROM Ingreso i WHERE i.prefijo = :prefijo")
     Integer obtenerMaximoCorrelativo(@Param("prefijo") String prefijo);
+
+    @Query("SELECT COUNT(i) FROM Ingreso i WHERE i.estado = '1' AND i.fecha >= :desde")
+    long contarIngresosDesde(@Param("desde") LocalDateTime desde);
+
+    @Query("SELECT COUNT(i) FROM Ingreso i WHERE i.estado = '1' AND i.fecha >= :desde AND i.fecha <= :hasta")
+    long contarIngresosEntre(@Param("desde") LocalDateTime desde, @Param("hasta") LocalDateTime hasta);
+
+    @EntityGraph(attributePaths = {"proveedor"})
+    @Query("SELECT i FROM Ingreso i WHERE i.estado = '1' ORDER BY i.fecha DESC, i.id DESC")
+    List<Ingreso> findUltimosIngresos(Pageable pageable);
 }

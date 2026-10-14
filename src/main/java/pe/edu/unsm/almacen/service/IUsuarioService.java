@@ -19,5 +19,7 @@ public interface IUsuarioService {
 
     void desactivar(Integer id);
 
+    void activar(Integer id);
+
     void resetearClave(Integer id, UsuarioResetClaveRequest request);
 }

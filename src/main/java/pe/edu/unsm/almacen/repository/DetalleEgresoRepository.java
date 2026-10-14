@@ -1,6 +1,7 @@
 package pe.edu.unsm.almacen.repository;
 
 import java.util.List;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -15,4 +16,14 @@ public interface DetalleEgresoRepository extends JpaRepository<DetalleEgreso, In
     @Query("SELECT d.egreso.id, COALESCE(SUM(ROUND(d.cantidad * d.precio, 2)), 0.00) FROM DetalleEgreso d "
             + "WHERE d.egreso.id IN :ids GROUP BY d.egreso.id")
     List<Object[]> sumarTotalesPorEgresoIds(@Param("ids") List<Integer> ids);
+
+    @Query("""
+        SELECT de.articulo.id, de.articulo.descripcion, de.articulo.unidadMedida.simbolo, SUM(de.cantidad)
+        FROM DetalleEgreso de
+        JOIN de.egreso e
+        WHERE e.estado != '0'
+        GROUP BY de.articulo.id, de.articulo.descripcion, de.articulo.unidadMedida.simbolo
+        ORDER BY SUM(de.cantidad) DESC
+    """)
+    List<Object[]> findTopArticulosConsumo(Pageable pageable);
 }

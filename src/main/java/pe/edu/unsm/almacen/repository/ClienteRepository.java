@@ -12,7 +12,14 @@ public interface ClienteRepository extends JpaRepository<Cliente, Integer> {
 
     List<Cliente> findByEstadoOrderByNombreAsc(String estado);
 
-    @Query("SELECT c FROM Cliente c WHERE (:filtro IS NULL OR :filtro = '' OR " +
+    long countByEstado(String estado);
+
+    List<Cliente> findByDni(String dni);
+
+    boolean existsByDniAndIdNotAndEstado(String dni, Integer id, String estado);
+
+    @Query("SELECT c FROM Cliente c WHERE c.estado = '1' AND " +
+           "(:filtro IS NULL OR :filtro = '' OR " +
            "LOWER(c.nombre) LIKE LOWER(CONCAT('%', :filtro, '%')) OR " +
            "LOWER(COALESCE(c.dni, '')) LIKE LOWER(CONCAT('%', :filtro, '%')) OR " +
            "LOWER(COALESCE(c.correo, '')) LIKE LOWER(CONCAT('%', :filtro, '%')))")

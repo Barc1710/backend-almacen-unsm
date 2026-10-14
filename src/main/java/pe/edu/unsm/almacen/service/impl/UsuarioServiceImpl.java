@@ -84,13 +84,17 @@ public class UsuarioServiceImpl implements IUsuarioService {
         Usuario usuario = usuarioRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado con id: " + id));
 
-        boolean esAdminPrincipal = Integer.valueOf(1).equals(id) || "admin".equalsIgnoreCase(usuario.getUsuario().trim());
-        if (esAdminPrincipal) {
-            if ("0".equals(request.estado())) {
-                throw new BusinessException("El usuario administrador principal no puede ser desactivado");
-            }
-            if (!Integer.valueOf(1).equals(request.idPerfil())) {
-                throw new BusinessException("El usuario administrador principal no puede cambiar de perfil");
+        boolean esAdminActivoActual = usuario.getPerfil() != null
+                && esPerfilAdmin(usuario.getPerfil())
+                && "1".equals(usuario.getEstado());
+
+        boolean cambiaraDeAdmin = !Integer.valueOf(1).equals(request.idPerfil());
+        boolean seDesactivara = "0".equals(request.estado());
+
+        if (esAdminActivoActual && (cambiaraDeAdmin || seDesactivara)) {
+            long adminsActivos = usuarioRepository.countByPerfil_IdPerfilAndEstado(1, "1");
+            if (adminsActivos <= 1) {
+                throw new BusinessException("No se puede cambiar el rol ni desactivar a este usuario porque es el único Administrador activo en el sistema. Registre o asigne otro administrador primero.");
             }
         }
 
@@ -123,13 +127,31 @@ public class UsuarioServiceImpl implements IUsuarioService {
         Usuario usuario = usuarioRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado con id: " + id));
 
-        if (Integer.valueOf(1).equals(id) || "admin".equalsIgnoreCase(usuario.getUsuario().trim())) {
-            throw new BusinessException("El usuario administrador principal no puede ser desactivado");
+        boolean esAdminActivo = usuario.getPerfil() != null
+                && esPerfilAdmin(usuario.getPerfil())
+                && "1".equals(usuario.getEstado());
+
+        if (esAdminActivo) {
+            long adminsActivos = usuarioRepository.countByPerfil_IdPerfilAndEstado(1, "1");
+            if (adminsActivos <= 1) {
+                throw new BusinessException("No se puede desactivar a este usuario porque es el único Administrador activo en el sistema. Registre o asigne otro administrador primero.");
+            }
         }
 
         usuario.setEstado("0");
         usuarioRepository.save(usuario);
         log.info("Usuario '{}' desactivado (id: {})", usuario.getUsuario(), id);
+    }
+
+    @Override
+    @Transactional
+    public void activar(Integer id) {
+        Usuario usuario = usuarioRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado con id: " + id));
+
+        usuario.setEstado("1");
+        usuarioRepository.save(usuario);
+        log.info("Usuario '{}' activado (id: {})", usuario.getUsuario(), id);
     }
 
     @Override
@@ -148,6 +170,8 @@ public class UsuarioServiceImpl implements IUsuarioService {
         return new UsuarioResponse(
                 u.getIdUsuario(),
                 u.getUsuario(),
+                u.getNombre(),
+                u.getApellido(),
                 u.getNombreCompleto(),
                 u.getDni(),
                 u.getCorreo(),
@@ -156,6 +180,13 @@ public class UsuarioServiceImpl implements IUsuarioService {
                 u.getPerfil() != null ? u.getPerfil().getNombrePerfil() : null,
                 u.getEstado(),
                 u.getDebeCambiarClave()
+        );
+    }
+
+    private boolean esPerfilAdmin(Perfil perfil) {
+        return perfil != null && (
+                Integer.valueOf(1).equals(perfil.getIdPerfil())
+                        || (perfil.getNombrePerfil() != null && "ADMINISTRADOR".equalsIgnoreCase(perfil.getNombrePerfil().trim()))
         );
     }
 }

@@ -18,5 +18,7 @@ public interface IClienteService {
 
     ClienteResponse actualizar(Integer id, ClienteRequest request);
 
+    void eliminar(Integer id);
+
     void cambiarEstado(Integer id, String nuevoEstado);
 }

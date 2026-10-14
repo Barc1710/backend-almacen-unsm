@@ -18,5 +18,7 @@ public interface IProveedorService {
 
     ProveedorResponse actualizar(Integer id, ProveedorRequest request);
 
+    void eliminar(Integer id);
+
     void cambiarEstado(Integer id, String nuevoEstado);
 }

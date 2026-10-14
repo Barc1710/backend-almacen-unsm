@@ -8,6 +8,9 @@ public record EncargadoResponse(
         String nombreCompleto,
         String dni,
         String cargo,
-        String estado
+        String estado,
+        Integer idUsuario,
+        String loginUsuario,
+        Boolean tieneUsuario
 ) {
 }

@@ -35,11 +35,17 @@ public class PerfilServiceImpl implements IPerfilService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<PerfilResponse> listarActivos() {
-        return perfilRepository.findByEstadoOrderByNombreAsc(1)
+    public List<PerfilResponse> listar(Integer estado) {
+        return perfilRepository.findByEstadoOrderByNombreAsc(estado)
                 .stream()
                 .map(this::mapToResponse)
                 .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<PerfilResponse> listarActivos() {
+        return listar(1);
     }
 
     @Override
@@ -111,6 +117,21 @@ public class PerfilServiceImpl implements IPerfilService {
     }
 
     @Override
+    @Transactional
+    public void activar(Integer id) {
+        Perfil perfil = perfilRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Perfil no encontrado con id: " + id));
+
+        if (perfil.getEstadoPerfil() != null && perfil.getEstadoPerfil() == 1) {
+            return;
+        }
+
+        perfil.setEstadoPerfil(1);
+        perfilRepository.save(perfil);
+        log.info("Perfil '{}' (id: {}) activado", perfil.getNombrePerfil(), id);
+    }
+
+    @Override
     @Transactional(readOnly = true)
     public PerfilPermisosResponse obtenerModulosPorPerfil(Integer idPerfil) {
         Perfil perfil = perfilRepository.findById(idPerfil)
@@ -173,8 +194,16 @@ public class PerfilServiceImpl implements IPerfilService {
         return new PerfilResponse(
                 p.getIdPerfil(),
                 p.getNombrePerfil(),
-                p.getEstado()
+                p.getEstado(),
+                contarModulos(p)
         );
+    }
+
+    private int contarModulos(Perfil p) {
+        if (esAdministrador(p)) {
+            return (int) moduloRepository.countActiveModulos();
+        }
+        return (int) permisoRepository.countActiveByPerfilId(p.getIdPerfil());
     }
 
     private boolean esAdministrador(Perfil perfil) {

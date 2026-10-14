@@ -1,6 +1,7 @@
 package pe.edu.unsm.almacen.service.impl;
 
 import java.util.List;
+import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -10,6 +11,7 @@ import pe.edu.unsm.almacen.dto.common.PageResponse;
 import pe.edu.unsm.almacen.dto.request.ClienteRequest;
 import pe.edu.unsm.almacen.dto.response.ClienteResponse;
 import pe.edu.unsm.almacen.entity.Cliente;
+import pe.edu.unsm.almacen.exception.DuplicateResourceException;
 import pe.edu.unsm.almacen.exception.ResourceNotFoundException;
 import pe.edu.unsm.almacen.repository.ClienteRepository;
 import pe.edu.unsm.almacen.service.IClienteService;
@@ -23,7 +25,8 @@ public class ClienteServiceImpl implements IClienteService {
     @Override
     @Transactional(readOnly = true)
     public PageResponse<ClienteResponse> listarPaginado(String filtro, Pageable pageable) {
-        Page<Cliente> page = clienteRepository.buscar(filtro, pageable);
+        String filtroLimpio = limpiar(filtro);
+        Page<Cliente> page = clienteRepository.buscar(filtroLimpio, pageable);
         return PageResponse.of(page.map(this::mapToResponse));
     }
 
@@ -47,14 +50,27 @@ public class ClienteServiceImpl implements IClienteService {
     @Override
     @Transactional
     public ClienteResponse crear(ClienteRequest request) {
+        String dniLimpio = limpiar(request.dni());
+        if (dniLimpio != null) {
+            List<Cliente> existentes = clienteRepository.findByDni(dniLimpio);
+            if (existentes.stream().anyMatch(c -> "1".equals(c.getEstado()))) {
+                throw new DuplicateResourceException("Ya existe un cliente activo con el DNI: " + dniLimpio);
+            }
+            Optional<Cliente> inactivo = existentes.stream()
+                    .filter(c -> "0".equals(c.getEstado()))
+                    .findFirst();
+            if (inactivo.isPresent()) {
+                Cliente aReactivar = inactivo.get();
+                actualizarDatos(aReactivar, dniLimpio, request);
+                aReactivar.setEstado("1");
+                return mapToResponse(clienteRepository.save(aReactivar));
+            }
+        }
+
         Cliente cliente = Cliente.builder()
-                .nombre(request.nombre().trim())
-                .dni(request.dni() != null ? request.dni().trim() : null)
-                .telefono(request.telefono() != null ? request.telefono().trim() : null)
-                .correo(request.correo() != null ? request.correo().trim() : null)
-                .direccion(request.direccion() != null ? request.direccion().trim() : null)
                 .estado("1")
                 .build();
+        actualizarDatos(cliente, dniLimpio, request);
         return mapToResponse(clienteRepository.save(cliente));
     }
 
@@ -64,13 +80,31 @@ public class ClienteServiceImpl implements IClienteService {
         Cliente cliente = clienteRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Cliente no encontrado con id: " + id));
 
-        cliente.setNombre(request.nombre().trim());
-        cliente.setDni(request.dni() != null ? request.dni().trim() : null);
-        cliente.setTelefono(request.telefono() != null ? request.telefono().trim() : null);
-        cliente.setCorreo(request.correo() != null ? request.correo().trim() : null);
-        cliente.setDireccion(request.direccion() != null ? request.direccion().trim() : null);
+        String dniLimpio = limpiar(request.dni());
+        if (dniLimpio != null && clienteRepository.existsByDniAndIdNotAndEstado(dniLimpio, id, "1")) {
+            throw new DuplicateResourceException("Ya existe otro cliente activo con el DNI: " + dniLimpio);
+        }
 
+        actualizarDatos(cliente, dniLimpio, request);
         return mapToResponse(clienteRepository.save(cliente));
+    }
+
+    private void actualizarDatos(Cliente cliente, String dni, ClienteRequest request) {
+        cliente.setDni(dni);
+        cliente.setNombre(request.nombre().trim());
+        cliente.setTelefono(limpiar(request.telefono()));
+        cliente.setCorreo(limpiar(request.correo()));
+        cliente.setDireccion(limpiar(request.direccion()));
+    }
+
+    private String limpiar(String val) {
+        return val != null && !val.trim().isEmpty() ? val.trim() : null;
+    }
+
+    @Override
+    @Transactional
+    public void eliminar(Integer id) {
+        cambiarEstado(id, "0");
     }
 
     @Override

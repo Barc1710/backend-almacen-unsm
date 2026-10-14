@@ -7,6 +7,9 @@ public record EncargadoAlmacenResponse(
         String nombreCompleto,
         String dni,
         String estado,
-        Boolean esTitular
+        Boolean esTitular,
+        Integer idUsuario,
+        String loginUsuario,
+        Boolean tieneUsuario
 ) {
 }

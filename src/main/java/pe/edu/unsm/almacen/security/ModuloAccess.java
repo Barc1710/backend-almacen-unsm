@@ -95,8 +95,14 @@ public class ModuloAccess {
         if ("INGRESOS".equals(clean) || "ENTRADAS".equals(clean)) {
             return List.of(clean, "INGRESOS", "ENTRADAS");
         }
-        if ("ENCARGADOS".equals(clean) || "ENCARGADOS_JEFE".equals(clean) || "ENCARGADOS_ALMACEN".equals(clean) || "JEFE".equals(clean)) {
-            return List.of(clean, "ENCARGADOS", "ENCARGADOS_JEFE", "ENCARGADOS_ALMACEN", "JEFE");
+        if ("ENCARGADOS_JEFE".equals(clean) || "JEFE".equals(clean)) {
+            return List.of(clean, "ENCARGADOS_JEFE", "JEFE", "ENCARGADOS");
+        }
+        if ("ENCARGADOS_ALMACEN".equals(clean) || "ALMACEN".equals(clean)) {
+            return List.of(clean, "ENCARGADOS_ALMACEN", "ALMACEN", "ENCARGADOS");
+        }
+        if ("ENCARGADOS".equals(clean)) {
+            return List.of(clean, "ENCARGADOS_JEFE", "ENCARGADOS_ALMACEN");
         }
         if ("SEGURIDAD".equals(clean)) {
             return List.of(clean, "SEGURIDAD_USUARIOS", "SEGURIDAD_PERFILES", "SEGURIDAD");

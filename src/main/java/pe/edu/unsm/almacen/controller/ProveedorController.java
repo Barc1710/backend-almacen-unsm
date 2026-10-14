@@ -34,12 +34,12 @@ public class ProveedorController {
 
     @GetMapping
     @PreAuthorize("@moduloAccess.canRead(authentication, 'PROVEEDORES', 'INGRESOS')")
-    @Operation(summary = "Listar proveedores paginados")
+    @Operation(summary = "Listar proveedores activos paginados")
     public ResponseEntity<ApiResponse<PageResponse<ProveedorResponse>>> listar(
             @RequestParam(name = "filtro", required = false) String filtro,
             Pageable pageable) {
         PageResponse<ProveedorResponse> response = proveedorService.listarPaginado(filtro, pageable);
-        return ResponseEntity.ok(new ApiResponse<>(true, "Proveedores listados", response));
+        return ResponseEntity.ok(ApiResponse.success("Proveedores listados", response));
     }
 
     @GetMapping("/activos")
@@ -47,7 +47,7 @@ public class ProveedorController {
     @Operation(summary = "Listar proveedores activos")
     public ResponseEntity<ApiResponse<List<ProveedorResponse>>> listarActivos() {
         List<ProveedorResponse> response = proveedorService.listarActivos();
-        return ResponseEntity.ok(new ApiResponse<>(true, "Proveedores activos listados", response));
+        return ResponseEntity.ok(ApiResponse.success("Proveedores activos listados", response));
     }
 
     @GetMapping("/{id}")
@@ -55,7 +55,7 @@ public class ProveedorController {
     @Operation(summary = "Obtener proveedor por ID")
     public ResponseEntity<ApiResponse<ProveedorResponse>> obtenerPorId(@PathVariable("id") Integer id) {
         ProveedorResponse response = proveedorService.obtenerPorId(id);
-        return ResponseEntity.ok(new ApiResponse<>(true, "Proveedor obtenido", response));
+        return ResponseEntity.ok(ApiResponse.success("Proveedor obtenido", response));
     }
 
     @PostMapping
@@ -64,7 +64,7 @@ public class ProveedorController {
     public ResponseEntity<ApiResponse<ProveedorResponse>> crear(@Valid @RequestBody ProveedorRequest request) {
         ProveedorResponse response = proveedorService.crear(request);
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(new ApiResponse<>(true, "Proveedor creado", response));
+                .body(ApiResponse.success("Proveedor creado", response));
     }
 
     @PutMapping("/{id}")
@@ -74,14 +74,14 @@ public class ProveedorController {
             @PathVariable("id") Integer id,
             @Valid @RequestBody ProveedorRequest request) {
         ProveedorResponse response = proveedorService.actualizar(id, request);
-        return ResponseEntity.ok(new ApiResponse<>(true, "Proveedor actualizado", response));
+        return ResponseEntity.ok(ApiResponse.success("Proveedor actualizado", response));
     }
 
     @DeleteMapping("/{id}")
     @PreAuthorize("@moduloAccess.hasAccess(authentication, 'PROVEEDORES')")
-    @Operation(summary = "Desactivar proveedor")
+    @Operation(summary = "Eliminar proveedor lógicamente")
     public ResponseEntity<ApiResponse<Void>> eliminar(@PathVariable("id") Integer id) {
-        proveedorService.cambiarEstado(id, "0");
-        return ResponseEntity.ok(new ApiResponse<>(true, "Proveedor desactivado", null));
+        proveedorService.eliminar(id);
+        return ResponseEntity.ok(ApiResponse.success("Proveedor eliminado exitosamente", null));
     }
 }

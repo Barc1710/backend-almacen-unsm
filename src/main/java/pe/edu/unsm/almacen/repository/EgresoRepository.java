@@ -2,6 +2,7 @@ package pe.edu.unsm.almacen.repository;
 
 import jakarta.persistence.LockModeType;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -86,4 +87,14 @@ public interface EgresoRepository extends JpaRepository<Egreso, Integer> {
     @Override
     @EntityGraph(attributePaths = {"cliente", "encargado", "area", "encargadoAlmacen", "usuario"})
     Optional<Egreso> findById(Integer id);
+
+    @Query("SELECT COUNT(e) FROM Egreso e WHERE e.estado = '1' AND e.fecha >= :desde")
+    long contarEgresosDesde(@Param("desde") LocalDateTime desde);
+
+    @Query("SELECT COUNT(e) FROM Egreso e WHERE e.estado = '1' AND e.fecha >= :desde AND e.fecha <= :hasta")
+    long contarEgresosEntre(@Param("desde") LocalDateTime desde, @Param("hasta") LocalDateTime hasta);
+
+    @EntityGraph(attributePaths = {"cliente", "area"})
+    @Query("SELECT e FROM Egreso e WHERE e.estado = '1' ORDER BY e.fecha DESC, e.id DESC")
+    List<Egreso> findUltimosEgresos(Pageable pageable);
 }

@@ -2,9 +2,13 @@ package pe.edu.unsm.almacen.entity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.ForeignKey;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -44,10 +48,27 @@ public class EncargadoAlmacen {
     @ColumnDefault("0")
     private Boolean esTitular;
 
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "id_usuario", referencedColumnName = "id_usuario",
+            foreignKey = @ForeignKey(name = "fk_encargado_almacen_usuario"))
+    private Usuario usuario;
+
     public String getNombreCompleto() {
         String nom = (nombres != null ? nombres.trim() : "");
         String ape = (apellidos != null && !apellidos.isBlank() ? " " + apellidos.trim() : "");
         return (nom + ape).trim();
+    }
+
+    public boolean tieneUsuario() {
+        return this.usuario != null;
+    }
+
+    public Integer getIdUsuario() {
+        return this.usuario != null ? this.usuario.getIdUsuario() : null;
+    }
+
+    public String getLoginUsuario() {
+        return this.usuario != null ? this.usuario.getUsuario() : null;
     }
 
     /**
