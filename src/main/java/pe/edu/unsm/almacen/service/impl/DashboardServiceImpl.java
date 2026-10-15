@@ -9,6 +9,7 @@ import java.util.Comparator;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import pe.edu.unsm.almacen.dto.response.dashboard.ArticuloStockCriticoResponse;
@@ -124,7 +125,9 @@ public class DashboardServiceImpl implements IDashboardService {
             }
         } else {
             // Si aún no se registran egresos, mostrar los artículos con mayor existencia en inventario
-            List<Articulo> fallbackArts = articuloRepository.findAll(PageRequest.of(0, 5)).getContent();
+            List<Articulo> fallbackArts = articuloRepository
+                    .findAll(PageRequest.of(0, 5, Sort.by(Sort.Direction.DESC, "saldo")))
+                    .getContent();
             for (Articulo a : fallbackArts) {
                 topConsumo.add(new TopArticuloConsumoResponse(
                         a.getId(),
@@ -141,7 +144,8 @@ public class DashboardServiceImpl implements IDashboardService {
         for (Articulo a : criticosList) {
             double pct = 0.0;
             if (a.getCantidadMinima() != null && a.getCantidadMinima().compareTo(BigDecimal.ZERO) > 0) {
-                pct = Math.round((a.getSaldo().doubleValue() / a.getCantidadMinima().doubleValue()) * 1000.0) / 10.0;
+                double saldoVal = a.getSaldo() != null ? a.getSaldo().doubleValue() : 0.0;
+                pct = Math.round((saldoVal / a.getCantidadMinima().doubleValue()) * 1000.0) / 10.0;
             }
             articulosCriticos.add(new ArticuloStockCriticoResponse(
                     a.getId(),
